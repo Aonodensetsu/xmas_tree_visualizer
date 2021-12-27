@@ -3,7 +3,7 @@ def effect(storage, positions, frame):
     # storage - you can write custom data into it, will be returned to you next frame
     #
     # positions - are given to you as a 2d array for each LED
-    # [ [x, y, z], [x, y, z], ...]
+    # [ [x, y, z], [x, y, z], ... ]
     #
     # frame - gives you the current frame number (starts at 1, ends at frame_max())
     #
