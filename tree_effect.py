@@ -10,10 +10,11 @@ def effect(storage, positions, frame):
     for i, led in enumerate(positions):
         distance_to_0 = math.sqrt(math.pow(led['x'], 2)+math.pow(led['y'], 2)+math.pow(led['z'], 2))
         distance_max = math.sqrt(11)
-        rgb.append(list(colorsys.hsv_to_rgb(distance_to_0 / distance_max, 1, 0.8)))
+        hue = ((distance_to_0 / distance_max) * 360 + frame * 5) / 360
+        rgb.append(list(colorsys.hsv_to_rgb(hue, 1, 0.8)))
     return storage, rgb
 
 
 def frame_max():
     # return the number of frames to render
-    return 1
+    return 100

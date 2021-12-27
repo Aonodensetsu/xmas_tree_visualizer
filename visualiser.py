@@ -114,4 +114,5 @@ if __name__ == '__main__':
                     string += f',{rgb}'
             effect_file.write(f'{string}\n')
             frame += 1
+    graph_r.text(0, 0, max(z_values)+0.5, s='finished rendering', ha='center', size=16)
     plot.show()
