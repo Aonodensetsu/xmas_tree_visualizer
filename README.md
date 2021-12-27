@@ -15,5 +15,4 @@ Optionally you can extend its functionality by:
 - using a premade csv effect (requires GIFT coordinates)
 - creating csv effects from py effects (requires GIFT coordinates)
 
-If no coordinates.csv file is found, the program will not work if given a csv effect, it will however display a cone as a fallback "tree" when supplied with a py effect.
-If no tree_effect.csv is found, the program will generate one and then display it. Otherwise, it will display the file you provided immediately. The generated effects are compliant with [GSD6338/XmasTree](https://github.com/GSD6338/XmasTree). All files available for downloads have comments within them so you can check that they are not malicious.
+Csv effects are created for a specific tree, so you need GIFT coordinates for that tree to use them. If GIFT coordinates are not found by the program, you can still preview py effects on a default "tree" - a cone. The program cannot run without an effect. If a py effect is supplied as well as coordinates, a csv effect will be created and previewed. The generated effects are compliant with [GSD6338/XmasTree](https://github.com/GSD6338/XmasTree). All files available for downloads have comments within them so you can check that they are not malicious.
