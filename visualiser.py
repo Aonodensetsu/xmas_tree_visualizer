@@ -1,10 +1,10 @@
-# fix for running via left click
-import os
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
-
 # import required libraries
+import os
+# fix for running via left click
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
 import tkinter
 import matplotlib as mpl
+# force mpl to use tkinter - it's bundled with python
 mpl.use('TkAgg', force=True)
 import matplotlib.pyplot as plot
 
@@ -37,12 +37,13 @@ def gui():
 	# move and resize window
 	window.canvas.manager.window.wm_geometry(f'+{left}+{top}')
 	window.set_size_inches(width / dpi, height / dpi)
-	# listen to closing
+	# stop plotting when window closed
 	window.canvas.mpl_connect('close_event', lambda e: plot.close(window))
 	# create 3d plot
 	graph = window.add_subplot(111, projection='3d')
-	# set preferences (labels)
+	# set camera position
 	graph.view_init(elev=15, azim=5)
+	# set labels
 	graph.set_xlabel('X')
 	graph.set_xlim3d(-1, 1)
 	graph.set_xticks([-1, 1])
@@ -53,9 +54,10 @@ def gui():
 	graph.set_zlim3d(0, max(z_values))
 	graph.set_zticks([0, max(z_values)])
 	# plot wires connecting leds
-	graph.plot(x_values, y_values, z_values, color=(0, 0, 0, 0.07))
+	graph.plot(x_values, y_values, z_values, color=(0, 0, 0, 0.08))
 	# set correct aspect ratio
 	graph.set_box_aspect([ub - lb for lb, ub in (getattr(graph, f'get_{a}lim')() for a in 'xyz')])
+	# shrink window borders
 	plot.tight_layout()
 	return graph
 
@@ -72,11 +74,11 @@ def draw(graph, colors):
 	# plot current values
 	graph.scatter3D(x_values, y_values, z_values, c=colors, cmap='rgb')
 	plot.draw()
-	# limit to 30 fps
+	# draw at 30 fps
 	plot.pause(1/30)
 
 
-# internally uses normalized rgb, write 0-255 to csv
+# internally uses normalized rgb, writes 0-255 to csv
 def denormalize_rgb(rgb):
 	for i, v in enumerate(rgb):
 		for j, w in enumerate(v):
@@ -85,12 +87,13 @@ def denormalize_rgb(rgb):
 
 
 def main():
-	# read GIFT coordinates
+	# get write access to shared variables
 	global x_values
 	global y_values
 	global z_values
-	with open('coordinates.csv', mode='r', encoding='utf-8-sig') as csv_f:
-		lines = csv_f.readlines()
+	# read GIFT coordinates
+	with open('coordinates.csv', mode='r', encoding='utf-8-sig') as csv_file:
+		lines = csv_file.readlines()
 		for i in range(len(lines)):
 			line = lines[i].split(',')
 			x_values.append(float(line[0]))
@@ -98,7 +101,6 @@ def main():
 			z_values.append(float(line[2]))
 	# concatenate coordinates to send to effect
 	positions = [{'x': x_values[i], 'y': y_values[i], 'z': z_values[i]} for i, v in enumerate(x_values)]
-
 	# create the csv with the header string
 	# the string if very long, so construct it programmatically
 	with open('tree_effect.csv', mode='w') as effect_file:
@@ -108,21 +110,23 @@ def main():
 				color = 'R' if j % 3 == 0 else 'G' if j % 3 == 1 else 'B'
 				string += f',{color}_{i}'
 		effect_file.write(f'{string}\n')
-	# initialize the gui
+	# initialize the gui and get the plot to update later
 	graph_r = gui()
-	# get frames
+	# get frames for effect
 	frame = 1
 	frame_max = tree_effect.frame_max()
-	# initialize empty storage
+	# initialize empty storage for effect
 	storage = None
 	# start playback and create effect csv
 	# if interrupted will not corrupt csv and will produce a valid file
 	# albeit cut in the middle (it updates the file once per frame)
 	with open('tree_effect.csv', mode='a') as effect_file:
 		while frame <= frame_max:
+			# get current frame from effect
 			storage, colors = tree_effect.effect(storage, positions, frame)
+			# update the plot
 			draw(graph_r, colors)
-			# create csv string for each frame
+			# create csv string for all leds
 			string = f'{frame-1}'
 			for led in denormalize_rgb(colors):
 				for rgb in led:
@@ -133,13 +137,17 @@ def main():
 	# continue visualizing until the visualizer is closed
 	graph_r.text(0, 0, max(z_values) + 0.5, s='created csv', ha='center', size=16)
 	while plot.fignum_exists(1):
+		# reset back to beginning
 		if not frame <= frame_max:
 			frame = 1
+		# get current frame from effect
 		storage, colors = tree_effect.effect(storage, positions, frame)
+		# update the plot
 		draw(graph_r, colors)
 		frame += 1
 
 
+# name guard
 if __name__ == '__main__':
 	draw_gui = 1
 	main()
