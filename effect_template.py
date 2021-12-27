@@ -18,5 +18,10 @@ def effect(storage, positions, frame):
 
 def frame_max():
     # return the number of frames to render
-    # the visualizer runs at roughly 30 frames per second
     return 1
+
+
+def frame_rate():
+    # return the number of frames per second
+    # this is not accurate, as plotting also takes some time
+    return 30
