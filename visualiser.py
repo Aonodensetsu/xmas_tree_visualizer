@@ -75,7 +75,7 @@ def draw(graph, colors):
 	graph.scatter3D(x_values, y_values, z_values, c=colors, cmap='rgb')
 	plot.draw()
 	# draw at 30 fps
-	plot.pause(1/30)
+	plot.pause(1/tree_effect.frame_rate())
 
 
 # internally uses normalized rgb, writes 0-255 to csv
