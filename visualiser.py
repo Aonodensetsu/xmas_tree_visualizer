@@ -7,28 +7,17 @@ import matplotlib as mpl
 mpl.use('TkAgg', force=True)
 import matplotlib.pyplot as plot
 
-# read GIFT coordinates
+# create shared variables
 x_values = []
 y_values = []
 z_values = []
-with open('coordinates.csv', mode='r', encoding='utf-8-sig') as csv_f:
-    lines = csv_f.readlines()
-    for i in range(len(lines)):
-        line = lines[i].split(',')
-        x_values.append(line[0])
-        y_values.append(line[1])
-        z_values.append(line[2])
-# change strings to floats
-x_values = [float(val) for val in x_values]
-y_values = [float(val) for val in y_values]
-z_values = [float(val) for val in z_values]
-# concatenate coordinates
-positions = [{'x': x_values[i], 'y': y_values[i], 'z': z_values[i]} for i, v in enumerate(x_values)]
 
 
 # create visualizer
 def gui():
-    # measure screen
+    if not draw_gui:
+        return
+    # measure screen size and dpi
     screen_measurer = tkinter.Tk()
     dpi = screen_measurer.winfo_fpixels('1i')
     screen_height = screen_measurer.winfo_screenheight()
@@ -49,7 +38,7 @@ def gui():
     window.canvas.mpl_connect('close_event', lambda e: plot.close(window))
     # create 3d plot
     graph = window.add_subplot(111, projection='3d')
-    # set preferences
+    # set preferences (labels)
     graph.view_init(elev=15, azim=5)
     graph.set_xlabel('X')
     graph.set_xlim3d(-1, 1)
@@ -60,7 +49,7 @@ def gui():
     graph.set_zlabel('Z')
     graph.set_zlim3d(0, max(z_values))
     graph.set_zticks([0, max(z_values)])
-    # plot wires
+    # plot wires connecting leds
     graph.plot(x_values, y_values, z_values, color=(0, 0, 0, 0.07))
     # set correct aspect ratio
     graph.set_box_aspect([ub - lb for lb, ub in (getattr(graph, f'get_{a}lim')() for a in 'xyz')])
@@ -71,6 +60,7 @@ def gui():
 # update plot
 def draw(graph, colors):
     # if the window was closed, don't draw
+    # will still create the csv if this happens
     if not plot.fignum_exists(1):
         return
     # clear the previous frame
@@ -83,7 +73,7 @@ def draw(graph, colors):
     plot.pause(1/30)
 
 
-# the csv needs 0-255 values
+# internally uses normalized rgb, write 0-255 to csv
 def denormalize_rgb(rgb):
     for i, v in enumerate(rgb):
         for j, w in enumerate(v):
@@ -91,28 +81,62 @@ def denormalize_rgb(rgb):
     return rgb
 
 
-if __name__ == '__main__':
+def main():
+    # read GIFT coordinates
+    global x_values
+    global y_values
+    global z_values
+    with open('coordinates.csv', mode='r', encoding='utf-8-sig') as csv_f:
+        lines = csv_f.readlines()
+        for i in range(len(lines)):
+            line = lines[i].split(',')
+            x_values.append(float(line[0]))
+            y_values.append(float(line[1]))
+            z_values.append(float(line[2]))
+    # concatenate coordinates to send to effect
+    positions = [{'x': x_values[i], 'y': y_values[i], 'z': z_values[i]} for i, v in enumerate(x_values)]
+
+    # create the csv with the header string
+    # the string if very long, so construct it programmatically
     with open('tree_effect.csv', mode='w') as effect_file:
-        # construct the header string
         string = 'FRAME_ID'
         for i in range(500):
             for j in range(3):
                 color = 'R' if j % 3 == 0 else 'G' if j % 3 == 1 else 'B'
                 string += f',{color}_{i}'
         effect_file.write(f'{string}\n')
+    # initialize the gui
     graph_r = gui()
+    # get frames
     frame = 1
     frame_max = tree_effect.frame_max()
+    # initialize empty storage
+    storage = None
+    # start playback and create effect csv
+    # if interrupted will not corrupt csv and will produce a valid file
+    # albeit cut in the middle (it updates the file once per frame)
     with open('tree_effect.csv', mode='a') as effect_file:
-        storage = None
         while frame <= frame_max:
-            string = f'{frame-1}'
             storage, colors = tree_effect.effect(storage, positions, frame)
             draw(graph_r, colors)
+            # create csv string for each frame
+            string = f'{frame-1}'
             for led in denormalize_rgb(colors):
                 for rgb in led:
                     string += f',{rgb}'
             effect_file.write(f'{string}\n')
             frame += 1
-    graph_r.text(0, 0, max(z_values)+0.5, s='finished rendering', ha='center', size=16)
-    plot.show()
+    # notify that the csv is complete
+    # continue visualizing until the visualizer is closed
+    graph_r.text(0, 0, max(z_values) + 0.5, s='created csv', ha='center', size=16)
+    while plot.fignum_exists(1):
+        if not frame <= frame_max:
+            frame = 1
+        storage, colors = tree_effect.effect(storage, positions, frame)
+        draw(graph_r, colors)
+        frame += 1
+
+
+if __name__ == '__main__':
+    draw_gui = 1
+    main()
