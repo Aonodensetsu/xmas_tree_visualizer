@@ -9,6 +9,7 @@ To use it you need to do a few simple things:
 - download the [default](https://raw.githubusercontent.com/Aonodensetsu/xmas-tree-visualizer/main/effect_default.py) effect or create your own from the [template](https://raw.githubusercontent.com/Aonodensetsu/xmas-tree-visualizer/main/effect_template.py)
 - rename the effect to tree_effect.py
 - put all 3 files into the same folder
-- run visualizer.py, it will show you how the effect looks and generate tree_effect.csv which is compliant with [GSD6338/XmasTree](https://github.com/GSD6338/XmasTree).
+- run visualizer.py
 
+The script will show you how the effect looks on a GUI and generate tree_effect.csv which is compliant with [GSD6338/XmasTree](https://github.com/GSD6338/XmasTree).
 All files available for downloads have comments within them so you can check that they are not malicious.
