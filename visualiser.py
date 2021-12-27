@@ -1,18 +1,18 @@
 # import required libraries
 import os
 # fix for running via left click
-import sys
-
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
+import sys
 import csv
+import time
 import math
-import tkinter as tk
-import matplotlib as mpl
+import tkinter
+import matplotlib
 # force mpl to use tkinter - it's bundled with python
-mpl.use('TkAgg', force=True)
+matplotlib.use('TkAgg', force=True)
 import matplotlib.pyplot as plot
 
-# import effect file
+# import effect file (csv before py)
 if os.path.exists('tree_effect.csv'):
 	try:
 		import tree_effect
@@ -20,8 +20,14 @@ if os.path.exists('tree_effect.csv'):
 		pass
 	loaded_csv = 1
 else:
+	try:
+		import tree_effect
+	except ModuleNotFoundError:
+		print('Cannot run without an effect')
+		time.sleep(2)
+		exit()
 	loaded_csv = 0
-	import tree_effect
+
 
 # create shared variables
 x_positions = []
@@ -34,7 +40,7 @@ colors = []
 
 # get tree coordinates
 def get_tree():
-	print('Creating tree')
+	print('Fetching tree')
 	# get write access to shared variables
 	global x_positions
 	global y_positions
@@ -54,6 +60,7 @@ def get_tree():
 		return True
 	# if GIFT file doesn't exist, make a cone as a placeholder
 	else:
+		print('Creating tree')
 		theta = 0
 		radius = 0.95
 		height = 0.05
@@ -126,7 +133,7 @@ def gui():
 		return
 	print('Creating GUI')
 	# measure screen size and dpi
-	screen_measurer = tk.Tk()
+	screen_measurer = tkinter.Tk()
 	dpi = screen_measurer.winfo_fpixels('1i')
 	screen_height = screen_measurer.winfo_screenheight()
 	# compute a sensible size for the visualizer
@@ -137,7 +144,7 @@ def gui():
 	screen_measurer.update()
 	screen_measurer.destroy()
 	# create window
-	mpl.rcParams['toolbar'] = 'None'
+	matplotlib.rcParams['toolbar'] = 'None'
 	window = plot.figure(num='Christmas Tree Visualiser')
 	# move and resize window
 	window.canvas.manager.window.wm_geometry(f'+{left}+{top}')
@@ -231,11 +238,15 @@ def main():
 					frame = 1
 				for dot in plot.gca().collections:
 					dot.remove()
-				storage, colors = tree_effect.effect(storage, positions, frame)
-				graph.scatter3D(x_positions, y_positions, z_positions, c=colors, cmap='rgb')
+				storage, g_colors = tree_effect.effect(storage, positions, frame)
+				graph.scatter3D(x_positions, y_positions, z_positions, c=g_colors, cmap='rgb')
 				plot.draw()
 				plot.pause(1/tree_effect.frame_rate())
 				frame += 1
+		else:
+			print('Cannot load CSV effect without a GIFT')
+			time.sleep(2)
+			exit()
 
 
 # name guard
