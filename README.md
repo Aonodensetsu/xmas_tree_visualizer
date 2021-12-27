@@ -1,8 +1,8 @@
 # Christmas Tree Visualizer
-A python wrapper for creating effects for Matt Parker's xmax tree
+A python wrapper for creating effects for Matt Parker's christmas tree.
 
 To use it you need to do a few simple things:
-- have *python3* and modules *csv*, *tkinter*, *matplotlib* installed
+- have *python3* and modules *tkinter* & *matplotlib* installed
 - get *GIFT* format coordinates for the tree you want to create an effect for
 - download the visualizer.py
 - use the template tree_effect.py or create your own
