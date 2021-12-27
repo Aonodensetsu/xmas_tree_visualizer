@@ -104,7 +104,7 @@ def main():
 	# create the csv with the header string
 	# the string if very long, so construct it programmatically
 	with open('tree_effect.csv', mode='w') as effect_file:
-		string = 'FRAME_ID'
+		string = 'FRAME_ID,FRAME_TIME'
 		for i in range(500):
 			for j in range(3):
 				color = 'R' if j % 3 == 0 else 'G' if j % 3 == 1 else 'B'
@@ -127,7 +127,7 @@ def main():
 			# update the plot
 			draw(graph_r, colors)
 			# create csv string for all leds
-			string = f'{frame-1}'
+			string = f'{frame-1},{1/tree_effect.frame_rate()}'
 			for led in denormalize_rgb(colors):
 				for rgb in led:
 					string += f',{rgb}'
