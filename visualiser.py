@@ -1,6 +1,8 @@
 # import required libraries
 import os
 # fix for running via left click
+import sys
+
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 import csv
 import math
@@ -12,9 +14,13 @@ import matplotlib.pyplot as plot
 
 # import effect file
 if os.path.exists('tree_effect.csv'):
-	loaded_module = 0
+	try:
+		import tree_effect
+	except ModuleNotFoundError:
+		pass
+	loaded_csv = 1
 else:
-	loaded_module = 1
+	loaded_csv = 0
 	import tree_effect
 
 # create shared variables
@@ -27,7 +33,7 @@ colors = []
 
 
 # get tree coordinates
-def create_tree():
+def get_tree():
 	print('Creating tree')
 	# get write access to shared variables
 	global x_positions
@@ -43,6 +49,9 @@ def create_tree():
 				x_positions.append(float(line[0]))
 				y_positions.append(float(line[1]))
 				z_positions.append(float(line[2]))
+		# concatenate coordinates to send to effect
+		positions = [{'x': x_positions[i], 'y': y_positions[i], 'z': z_positions[i]} for i, v in enumerate(x_positions)]
+		return True
 	# if GIFT file doesn't exist, make a cone as a placeholder
 	else:
 		theta = 0
@@ -56,12 +65,14 @@ def create_tree():
 			x_positions.append(radius * math.cos(theta_rad))
 			y_positions.append(radius * math.sin(theta_rad))
 			z_positions.append(height)
-	# concatenate coordinates to send to effect
-	positions = [{'x': x_positions[i], 'y': y_positions[i], 'z': z_positions[i]} for i, v in enumerate(x_positions)]
+		# concatenate coordinates to send to effect
+		positions = [{'x': x_positions[i], 'y': y_positions[i], 'z': z_positions[i]} for i, v in enumerate(x_positions)]
+		return False
 
 
 # create output csv
 def create_csv():
+	print('Creating CSV')
 	# create the csv with the header string
 	# the string if very long, so construct it programmatically
 	with open('tree_effect.csv', mode='w') as effect_file:
@@ -95,6 +106,7 @@ def create_csv():
 
 # read instructions
 def read_csv():
+	print('Reading CSV')
 	global frame_times
 	global colors
 	with open('tree_effect.csv', mode='r', encoding='utf-8-sig') as csv_instructions:
@@ -112,6 +124,7 @@ def read_csv():
 def gui():
 	if not draw_gui:
 		return
+	print('Creating GUI')
 	# measure screen size and dpi
 	screen_measurer = tk.Tk()
 	dpi = screen_measurer.winfo_fpixels('1i')
@@ -187,25 +200,42 @@ def normalize_rgb(rgb):
 def main():
 	global colors
 	# get tree
-	create_tree()
-	# play the csv if given
-	if loaded_module:
-		create_csv()
-	# read the instruction csv
-	read_csv()
-	# initialize the gui and get the plot to update later
-	graph = gui()
-	# get frame information from effect
-	frame = 1
-	frame_max = len(frame_times)
-	# visualize until the visualizer is closed
-	while plot.fignum_exists(1):
-		# reset back to beginning
-		if not frame <= frame_max:
+	if get_tree():
+		# play the csv if given
+		if not loaded_csv:
+			create_csv()
+		# read the instruction csv
+		read_csv()
+		# initialize the gui and get the plot to update later
+		graph = gui()
+		# get frame information from effect
+		frame = 1
+		frame_max = len(frame_times)
+		# visualize until the visualizer is closed
+		while plot.fignum_exists(1):
+			# reset back to beginning
+			if not frame <= frame_max:
+				frame = 1
+			# update the plot
+			draw(graph, frame)
+			frame += 1
+	else:
+		if 'tree_effect' in sys.modules:
+			global x_positions, y_positions, z_positions
+			graph = gui()
 			frame = 1
-		# update the plot
-		draw(graph, frame)
-		frame += 1
+			frame_max = tree_effect.frame_max()
+			storage = None
+			while plot.fignum_exists(1):
+				if frame >= frame_max:
+					frame = 1
+				for dot in plot.gca().collections:
+					dot.remove()
+				storage, colors = tree_effect.effect(storage, positions, frame)
+				graph.scatter3D(x_positions, y_positions, z_positions, c=colors, cmap='rgb')
+				plot.draw()
+				plot.pause(1/tree_effect.frame_rate())
+				frame += 1
 
 
 # name guard
