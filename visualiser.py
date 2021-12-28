@@ -1,7 +1,5 @@
 # import required libraries
 import os
-# fix for running via left click
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
 import sys
 import csv
 import time
@@ -12,6 +10,13 @@ import matplotlib
 matplotlib.use('TkAgg', force=True)
 import matplotlib.pyplot as plot
 
+# fix for running via left click
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+
+# try to import PY effect
+if os.path.exists('tree_effect.py'):
+	import tree_effect
+
 # create shared variables
 x_positions = []
 y_positions = []
@@ -19,25 +24,6 @@ z_positions = []
 frame_times = []
 positions = []
 colors = []
-
-if os.path.exists('tree_effect.py'):
-	import tree_effect
-# import effect file (csv before py)
-# if os.path.exists('tree_effect.csv'):
-# 	try:
-# 		import tree_effect
-# 	except ModuleNotFoundError:
-# 		pass
-# 	# loaded_csv = 1
-# else:
-# 	try:
-# 		import tree_effect
-# 	except ModuleNotFoundError:
-# 		pass
-# 		# print('No effect found')
-# 		# time.sleep(2)
-# 		# exit()
-# 	# loaded_csv = 0
 
 
 # get tree coordinates
@@ -48,6 +34,7 @@ def get_tree():
 	global y_positions
 	global z_positions
 	global positions
+	# check if GIFT available
 	if os.path.exists('coordinates.csv'):
 		# read GIFT coordinates
 		with open('coordinates.csv', mode='r', encoding='utf-8-sig') as csv_file:
@@ -78,7 +65,7 @@ def get_tree():
 		return False
 
 
-# create output csv
+# create csv
 def create_csv():
 	print('Creating CSV')
 	# create the csv with the header string
@@ -96,20 +83,26 @@ def create_csv():
 	frame_time = round(1 / tree_effect.frame_rate(), 5)
 	# initialize empty storage for effect
 	storage = None
+	# create window
+	graph = gui()
 	# create effect csv
 	# if interrupted will not corrupt csv and will produce a valid file
 	# albeit cut in the middle (it updates the file once per frame)
 	with open('tree_effect.csv', mode='a+') as effect_file:
 		while frame <= frame_max:
 			# get current frame from effect
-			storage, g_colors = tree_effect.effect(storage, positions, frame)
+			storage, l_colors = tree_effect.effect(storage, positions, frame)
+			# update plot
+			draw(graph, frame, l_colors)
 			# create csv string for all leds
-			string = f'{frame - 1},{frame_time}'
-			for led in denormalize_rgb(g_colors):
+			string = f'{frame-1},{frame_time}'
+			for led in denormalize_rgb(l_colors):
 				for rgb in led:
 					string += f',{rgb}'
+			# update CSV file
 			effect_file.write(f'{string}\n')
 			frame += 1
+	return graph
 
 
 # read instructions
@@ -117,6 +110,7 @@ def read_csv():
 	print('Reading CSV')
 	global frame_times
 	global colors
+	# clear global tables to not get corrupted
 	frame_times = []
 	colors = []
 	with open('tree_effect.csv', mode='r', encoding='utf-8-sig') as csv_instructions:
@@ -132,6 +126,9 @@ def read_csv():
 
 # create visualizer
 def gui():
+	# don't draw if importing, but still allow creating a csv by calling main()
+	if not __name__ == '__main__':
+		return
 	print('Creating GUI')
 	# measure screen size and dpi
 	screen_measurer = tkinter.Tk()
@@ -176,17 +173,27 @@ def gui():
 
 
 # update plot
-def draw(graph, frame):
-	global colors
+def draw(graph, frame, color=None):
+	if not plot.fignum_exists(1):
+		return
+	# if color is given, it comes from a PY effect
+	color_flag = 0
+	if not color:
+		global colors
+		color_flag = 1
+		color = colors[frame-1]
 	global frame_times
 	# clear the previous frame
 	for dot in plot.gca().collections:
 		dot.remove()
 	# plot current values
-	graph.scatter3D(x_positions, y_positions, z_positions, c=colors[frame-1], cmap='rgb')
+	graph.scatter3D(x_positions, y_positions, z_positions, c=color, cmap='rgb')
 	plot.draw()
 	# draw for frame_time
-	plot.pause(frame_times[frame-1])
+	if color_flag:
+		plot.pause(frame_times[frame-1])
+	else:
+		plot.pause(1/tree_effect.frame_rate())
 
 
 # internally uses normalized rgb, writes 0-255 to csv
@@ -205,56 +212,99 @@ def normalize_rgb(rgb):
 	return rgb
 
 
-def main():
+# check the current state
+def get_state():
+	print('Getting state')
+	# state is a binary value for available files
 	state = 0
+	# is a PY effect available?
 	if 'tree_effect' in sys.modules:
 		state += 1
+	# is a CSV effect available?
 	if os.path.exists('tree_effect.csv'):
 		state += 2
+	# are coordinates available?
 	if get_tree():
 		state += 4
+	return state
+
+
+# run the program
+def main():
+	print('Running program')
+	# check the current state of the program
+	state = get_state()
+	# 0 - no files are loaded, show a default tree with black LEDs
+	# 4 - only the coordinates are loaded, show the tree with black LEDs
 	if state == 0 or state == 4:
+		# create a fake CSV with one frame
 		frame_times.append(1 / 30)
 		colors.append([[0, 0, 0] for i in range(500)])
+		# create window
 		graph = gui()
-		while plot.fignum_exists(1):
-			draw(graph, 1)
+		# draw gui
+		draw(graph, 1)
+		plot.show()
 		exit()
+	# 1 - only a PY effect is loaded, show on a default tree
+	# 3 - PY and CSV effects loaded, ignore CSV since there is no tree
 	elif state == 1 or state == 3:
+		# set up frame counters
 		frame = 1
 		frame_max = tree_effect.frame_max()
+		# give storage to the PY effect
 		storage = None
+		# create window
 		graph = gui()
 		while plot.fignum_exists(1):
+			# reset from beginning
 			if not frame <= frame_max:
 				frame = 1
-			for dot in plot.gca().collections:
-				dot.remove()
+			# get current frame from effect
 			storage, l_colors = tree_effect.effect(storage, positions, frame)
-			graph.scatter3D(x_positions, y_positions, z_positions, c=l_colors, cmap='rgb')
-			plot.draw()
-			plot.pause(1 / tree_effect.frame_rate())
+			draw(graph, frame, l_colors)
 			frame += 1
 		exit()
+	# 2 - only a CSV effect is loaded, error and quit
 	elif state == 2:
-		print('Cannot read CSV without GIFT')
+		print('Error: Cannot read CSV without GIFT')
 		time.sleep(2)
 		exit()
+	# 5 - a PY effect and coordinates are loaded, create csv, load it and play back
 	elif state == 5:
-		create_csv()
-		state += 2
-		main()
-		exit()
-	elif state == 6 or state == 7:
+		# create a csv (also visualizes while creating)
+		# return the graph to keep playback after it's done
+		graph = create_csv()
+		# when CSV created, read its contents
 		read_csv()
+		# get frames from csv
 		frame = 1
 		frame_max = len(frame_times)
-		graph = gui()
+		# preview while window open
 		while plot.fignum_exists(1):
+			# restart from beginning
 			if not frame <= frame_max:
 				frame = 1
-			for dot in plot.gca().collections:
-				dot.remove()
+			# update plot
+			draw(graph, frame)
+			frame += 1
+		exit()
+	# 6 - coordinates and CSV effect loaded, play back the CSV
+	# 7 - coordinates, CSV and PY effects are loaded, ignore PY, play back CSV
+	elif state == 6 or state == 7:
+		# read instructions from CSV
+		read_csv()
+		# set up frame counters
+		frame = 1
+		frame_max = len(frame_times)
+		# create window
+		graph = gui()
+		# while GUI open, update plot
+		while plot.fignum_exists(1):
+			# restart from beginning
+			if not frame <= frame_max:
+				frame = 1
+			# update plot
 			draw(graph, frame)
 			frame += 1
 		exit()
