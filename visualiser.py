@@ -28,7 +28,6 @@ else:
 		exit()
 	loaded_csv = 0
 
-
 # create shared variables
 x_positions = []
 y_positions = []
@@ -62,16 +61,15 @@ def get_tree():
 	else:
 		print('Creating tree')
 		theta = 0
-		radius = 0.95
-		height = 0.05
+		height = 0.006
 		for i in range(500):
-			theta = (theta + 10) % 360
 			theta_rad = math.radians(theta)
-			radius -= 0.00175
-			height += 0.006
+			radius = (0.006*525-height)/3.6
 			x_positions.append(radius * math.cos(theta_rad))
 			y_positions.append(radius * math.sin(theta_rad))
 			z_positions.append(height)
+			theta = (theta + 10) % 360
+			height += 0.006
 		# concatenate coordinates to send to effect
 		positions = [{'x': x_positions[i], 'y': y_positions[i], 'z': z_positions[i]} for i, v in enumerate(x_positions)]
 		return False
