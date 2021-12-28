@@ -5,7 +5,7 @@ To use it you need to do a few simple things:
 - have *python3* and module *matplotlib* installed
 - download and run [visualizer.py](https://raw.githubusercontent.com/Aonodensetsu/xmax-tree-visualizer/main/visualiser.py)
 
-Optionally you can extend its functionality by placing additional files in the same folder:
+You can extend its functionality by placing additional files in the same folder:
 - get *GIFT* coordinates for a tree ([official 2021](https://www.dropbox.com/s/lmccfutftplhh3b/coords_2021.csv)), rename to coordinates.csv
 - load the [default](https://raw.githubusercontent.com/Aonodensetsu/xmas-tree-visualizer/main/effect_default.py) effect as a showcase, rename to tree_effect.py
 - create your own effect from the [template](https://raw.githubusercontent.com/Aonodensetsu/xmas-tree-visualizer/main/effect_template.py), rename to tree_effect.py
