@@ -8,6 +8,7 @@ import tkinter
 import matplotlib
 # force mpl to use tkinter - it's bundled with python
 matplotlib.use('TkAgg', force=True)
+matplotlib.rc('grid', color='None')
 import matplotlib.pyplot as plot
 
 # fix for running via left click
@@ -153,16 +154,22 @@ def gui():
 	graph = window.add_subplot(111, projection='3d')
 	# set camera position
 	graph.view_init(elev=15, azim=5)
+	# set background color
+	window.patch.set_facecolor('#4c4a48')
+	graph.set(fc='#4c4a48')
+	graph.xaxis.pane.set_alpha(0)
+	graph.yaxis.pane.set_alpha(0)
+	graph.zaxis.pane.set_alpha(0)
 	# set labels
-	graph.set_xlabel('X')
-	graph.set_xlim3d(-1, 1)
-	graph.set_xticks([-1, 1])
-	graph.set_ylabel('Y')
-	graph.set_ylim3d(-1, 1)
-	graph.set_yticks([-1, 1])
-	graph.set_zlabel('Z')
-	graph.set_zlim3d(0, max(z_positions))
-	graph.set_zticks([0, max(z_positions)])
+	graph.set_xlabel('X', color='white', labelpad=-5)
+	graph.set_ylabel('Y', color='white', labelpad=-5)
+	graph.set_zlabel('Z', color='white', labelpad=5)
+	graph.set(xlim3d=(-1, 1), ylim3d=(-1, 1), zlim3d=(0, max(z_positions)))
+	graph.set(xticks=[-1, 1], yticks=[-1, 1], zticks=[0, max(z_positions)])
+	graph.margins(x=0, y=0, z=0, tight=True)
+	graph.tick_params(which='both', color='None', labelcolor='white')
+	graph.tick_params(axis='both', pad=5)
+	graph.tick_params(axis='z', pad=15)
 	# plot wires connecting leds
 	graph.plot(x_positions, y_positions, z_positions, color=(0, 0, 0, 0.08))
 	# set correct aspect ratio
