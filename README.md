@@ -1,5 +1,5 @@
 # Christmas Tree Visualizer
-A python wrapper for creating and viewing effects for Matt Parker's christmas tree. Displays PY or CSV effect files and allows creating PY effects easily.
+A python wrapper for creating and viewing effects for Matt Parker's christmas tree. Displays PY or CSV effect files and allows creating PY and CSV effects easily.
 
 To use it you need to do a few simple things:
 - have *python3* and module *matplotlib* installed
