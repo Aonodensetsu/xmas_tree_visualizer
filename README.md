@@ -12,4 +12,12 @@ You can extend its functionality by placing additional files in the same folder:
 
 CSV effects are created for a specific tree, so you need *GIFT* coordinates for that tree to use them. If coordinates are not found by the program, you can still preview python effects on a default "tree" - a cone (currently). If a PY effect is supplied as well as coordinates, it will be compiled into CSV while it's previewed. The generated effects are compliant with [GSD6338/XmasTree](https://github.com/GSD6338/XmasTree). All files available for download have comments within them so you can check that they are not malicious.
 
+The effects are simple python files that consist of the following 3 functions:
+- frame_rate - specifies the framerate that you want the animation to play at
+- frame_max - specifies the length of the animation before repeating from the beginning
+- effect (storage, positions, frame) - the effect itself, you get information about the tree and return rgb colors and storage for the next frame
+- - storage - you can keep data you might need to refer to in later parts of the animation
+- - positions - a list of {x, y, z} positions of all LEDs in the tree
+- - frame - the current frame
+
 You can import visualizer.py safely due to a __name__ guard and you can compile csv by running main() after it's imported - it will not open a GUI.
