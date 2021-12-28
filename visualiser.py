@@ -12,22 +12,6 @@ import matplotlib
 matplotlib.use('TkAgg', force=True)
 import matplotlib.pyplot as plot
 
-# import effect file (csv before py)
-if os.path.exists('tree_effect.csv'):
-	try:
-		import tree_effect
-	except ModuleNotFoundError:
-		pass
-	loaded_csv = 1
-else:
-	try:
-		import tree_effect
-	except ModuleNotFoundError:
-		print('Cannot run without an effect')
-		time.sleep(2)
-		exit()
-	loaded_csv = 0
-
 # create shared variables
 x_positions = []
 y_positions = []
@@ -35,6 +19,25 @@ z_positions = []
 frame_times = []
 positions = []
 colors = []
+
+if os.path.exists('tree_effect.py'):
+	import tree_effect
+# import effect file (csv before py)
+# if os.path.exists('tree_effect.csv'):
+# 	try:
+# 		import tree_effect
+# 	except ModuleNotFoundError:
+# 		pass
+# 	# loaded_csv = 1
+# else:
+# 	try:
+# 		import tree_effect
+# 	except ModuleNotFoundError:
+# 		pass
+# 		# print('No effect found')
+# 		# time.sleep(2)
+# 		# exit()
+# 	# loaded_csv = 0
 
 
 # get tree coordinates
@@ -114,6 +117,8 @@ def read_csv():
 	print('Reading CSV')
 	global frame_times
 	global colors
+	frame_times = []
+	colors = []
 	with open('tree_effect.csv', mode='r', encoding='utf-8-sig') as csv_instructions:
 		reader = list(csv.reader(csv_instructions))
 		leds = int((len(reader[0]) - 2) / 3)
@@ -127,8 +132,6 @@ def read_csv():
 
 # create visualizer
 def gui():
-	if not draw_gui:
-		return
 	print('Creating GUI')
 	# measure screen size and dpi
 	screen_measurer = tkinter.Tk()
@@ -203,51 +206,60 @@ def normalize_rgb(rgb):
 
 
 def main():
-	global colors
-	# get tree
+	state = 0
+	if 'tree_effect' in sys.modules:
+		state += 1
+	if os.path.exists('tree_effect.csv'):
+		state += 2
 	if get_tree():
-		# play the csv if given
-		if not loaded_csv:
-			create_csv()
-		# read the instruction csv
-		read_csv()
-		# initialize the gui and get the plot to update later
+		state += 4
+	if state == 0 or state == 4:
+		frame_times.append(1 / 30)
+		colors.append([[0, 0, 0] for i in range(500)])
 		graph = gui()
-		# get frame information from effect
-		frame = 1
-		frame_max = len(frame_times)
-		# visualize until the visualizer is closed
 		while plot.fignum_exists(1):
-			# reset back to beginning
+			draw(graph, 1)
+		exit()
+	elif state == 1 or state == 3:
+		frame = 1
+		frame_max = tree_effect.frame_max()
+		storage = None
+		graph = gui()
+		while plot.fignum_exists(1):
 			if not frame <= frame_max:
 				frame = 1
-			# update the plot
+			for dot in plot.gca().collections:
+				dot.remove()
+			storage, l_colors = tree_effect.effect(storage, positions, frame)
+			graph.scatter3D(x_positions, y_positions, z_positions, c=l_colors, cmap='rgb')
+			plot.draw()
+			plot.pause(1 / tree_effect.frame_rate())
+			frame += 1
+		exit()
+	elif state == 2:
+		print('Cannot read CSV without GIFT')
+		time.sleep(2)
+		exit()
+	elif state == 5:
+		create_csv()
+		state += 2
+		main()
+		exit()
+	elif state == 6 or state == 7:
+		read_csv()
+		frame = 1
+		frame_max = len(frame_times)
+		graph = gui()
+		while plot.fignum_exists(1):
+			if not frame <= frame_max:
+				frame = 1
+			for dot in plot.gca().collections:
+				dot.remove()
 			draw(graph, frame)
 			frame += 1
-	else:
-		if 'tree_effect' in sys.modules:
-			global x_positions, y_positions, z_positions
-			graph = gui()
-			frame = 1
-			frame_max = tree_effect.frame_max()
-			storage = None
-			while plot.fignum_exists(1):
-				if frame >= frame_max:
-					frame = 1
-				for dot in plot.gca().collections:
-					dot.remove()
-				storage, g_colors = tree_effect.effect(storage, positions, frame)
-				graph.scatter3D(x_positions, y_positions, z_positions, c=g_colors, cmap='rgb')
-				plot.draw()
-				plot.pause(1/tree_effect.frame_rate())
-				frame += 1
-		else:
-			print('Cannot load CSV effect without a GIFT')
-			time.sleep(2)
-			exit()
+		exit()
 
 
 # name guard
 if __name__ == '__main__':
-	draw_gui = 1
 	main()
