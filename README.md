@@ -16,8 +16,8 @@ The effects are simple python files that consist of the following 3 functions:
 - frame_rate - specifies the framerate that you want the animation to play at
 - frame_max - specifies the length of the animation before repeating from the beginning
 - effect (storage, positions, frame) - the effect itself, you get information about the tree and return rgb colors and storage for the next frame
-- - storage - you can keep data you might need to refer to in later parts of the animation
-- - positions - a list of {x, y, z} positions of all LEDs in the tree
-- - frame - the current frame
+  - storage - you can keep data you might need to refer to in later parts of the animation
+  - positions - a list of {x, y, z} positions of all LEDs in the tree
+  - frame - the current frame
 
 You can import visualizer.py safely due to a __name__ guard and you can compile csv by running main() after it's imported - it will not open a GUI.
