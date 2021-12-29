@@ -198,9 +198,10 @@ def draw(graph, frame, color=None):
 	plot.draw()
 	# draw for frame_time
 	if color_flag:
-		plot.pause(frame_times[frame-1])
+		pause_for = frame_times[frame-1]
 	else:
-		plot.pause(1/tree_effect.frame_rate())
+		pause_for = 1/tree_effect.frame_rate()
+	plot.pause(pause_for)
 
 
 # internally uses normalized rgb, writes 0-255 to csv
