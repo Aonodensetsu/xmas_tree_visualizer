@@ -12,7 +12,7 @@ def effect(storage, positions, frame):
     # return 2d array of normalized RGB values for each LED
     # [ [r, g, b], [0.2, 0.7, 1], ... ]
     #
-    rgb = [[0, 0, 0] for i in range(len(positions))]
+    rgb = [[0, 0, 0] for _ in range(len(positions))]
     return storage, rgb
 
 
