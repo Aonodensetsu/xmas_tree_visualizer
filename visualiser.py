@@ -247,7 +247,7 @@ def main():
 	if state == 0 or state == 4:
 		# create a fake CSV with one frame
 		frame_times.append(1 / 30)
-		colors.append([[0, 0, 0] for i in range(500)])
+		colors.append([[0, 0, 0] for _ in range(500)])
 		# create window
 		graph = gui()
 		# draw gui
