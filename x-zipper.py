@@ -2,6 +2,9 @@ import os
 import csv
 import time
 
+# fix for running via left click
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+
 frame_rates = []
 colors = []
 
@@ -20,7 +23,7 @@ def read_csv():
 
 def read_xtree():
     bytes_total = os.path.getsize('tree_effect.xtree')
-    with open('tree_effect.xtree', mode='rb') as xtree_input:
+    with open('tree_effect.xtree', mode='br+') as xtree_input:
         leds = int.from_bytes(xtree_input.read(2), 'big')
         frames = int((bytes_total - 2) / (leds * 3 + 2))
         for i in range(frames):
@@ -49,7 +52,7 @@ def create_csv():
 
 
 def create_xtree():
-    with open('tree_effect.xtree', mode='wb') as xtree_output:
+    with open('tree_effect.xtree', mode='bw+') as xtree_output:
         xtree_output.write((len(colors[0])).to_bytes(2, 'big'))
         # for each animation frame
         for i in range(len(colors)):
