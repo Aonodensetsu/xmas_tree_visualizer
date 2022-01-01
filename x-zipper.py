@@ -2,7 +2,6 @@ import os
 import csv
 import time
 
-# fix for running via left click
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
 frame_rates = []
@@ -65,6 +64,7 @@ def create_xtree():
 
 
 def main():
+    print('X-zipper - a tool to compress CSV animations')
     print('Which type of file to convert?')
     file_type = input('(csv/xtree): ')
     if file_type == 'csv':
