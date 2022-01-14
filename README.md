@@ -2,7 +2,7 @@
 A python wrapper for creating and viewing effects for Matt Parker's christmas tree. Displays PY or CSV effect files and allows creating PY and CSV effects easily.
 
 To use it you need to do a few simple things:
-- have *python3* and module *matplotlib* installed
+- have *python (3.10+)* and module *matplotlib* installed
 - download and run [visualizer.py](https://raw.githubusercontent.com/Aonodensetsu/xmax-tree-visualizer/main/visualiser.py)
 
 You can extend its functionality by placing additional files in the same folder:

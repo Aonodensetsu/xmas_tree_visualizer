@@ -241,81 +241,81 @@ def get_state():
 def main():
 	print('Running program')
 	# check the current state of the program
-	state = get_state()
-	# 0 - no files are loaded, show a default tree with black LEDs
-	# 4 - only the coordinates are loaded, show the tree with black LEDs
-	if state == 0 or state == 4:
-		# create a fake CSV with one frame
-		frame_times.append(1 / 30)
-		colors.append([[0, 0, 0] for _ in range(500)])
-		# create window
-		graph = gui()
-		# draw gui
-		draw(graph, 1)
-		plot.show()
-		exit()
-	# 1 - only a PY effect is loaded, show on a default tree
-	# 3 - PY and CSV effects loaded, ignore CSV since there is no tree
-	elif state == 1 or state == 3:
-		# set up frame counters
-		frame = 1
-		frame_max = tree_effect.frame_max()
-		# give storage to the PY effect
-		storage = None
-		# create window
-		graph = gui()
-		while plot.fignum_exists(1):
-			# reset from beginning
-			if not frame <= frame_max:
-				frame = 1
-			# get current frame from effect
-			storage, l_colors = tree_effect.effect(storage, positions, frame)
-			draw(graph, frame, l_colors)
-			frame += 1
-		exit()
-	# 2 - only a CSV effect is loaded, error and quit
-	elif state == 2:
-		print('Error: Cannot read CSV without GIFT')
-		time.sleep(2)
-		exit()
-	# 5 - a PY effect and coordinates are loaded, create csv, load it and play back
-	elif state == 5:
-		# create a csv (also visualizes while creating)
-		# return the graph to keep playback after it's done
-		graph = create_csv()
-		# when CSV created, read its contents
-		read_csv()
-		# get frames from csv
-		frame = 1
-		frame_max = len(frame_times)
-		# preview while window open
-		while plot.fignum_exists(1):
-			# restart from beginning
-			if not frame <= frame_max:
-				frame = 1
-			# update plot
-			draw(graph, frame)
-			frame += 1
-		exit()
-	# 6 - coordinates and CSV effect loaded, play back the CSV
-	# 7 - coordinates, CSV and PY effects are loaded, ignore PY, play back CSV
-	elif state == 6 or state == 7:
-		# read instructions from CSV
-		read_csv()
-		# set up frame counters
-		frame = 1
-		frame_max = len(frame_times)
-		# create window
-		graph = gui()
-		# while GUI open, update plot
-		while plot.fignum_exists(1):
-			# restart from beginning
-			if not frame <= frame_max:
-				frame = 1
-			# update plot
-			draw(graph, frame)
-			frame += 1
-		exit()
+	match get_state():
+		# 0 - no files are loaded, show a default tree with black LEDs
+		# 4 - only the coordinates are loaded, show the tree with black LEDs
+		case 0 | 4:
+			# create a fake CSV with one frame
+			frame_times.append(1 / 30)
+			colors.append([[0, 0, 0] for _ in range(500)])
+			# create window
+			graph = gui()
+			# draw gui
+			draw(graph, 1)
+			plot.show()
+			exit()
+		# 1 - only a PY effect is loaded, show on a default tree
+		# 3 - PY and CSV effects loaded, ignore CSV since there is no tree
+		case 1 | 3:
+			# set up frame counters
+			frame = 1
+			frame_max = tree_effect.frame_max()
+			# give storage to the PY effect
+			storage = None
+			# create window
+			graph = gui()
+			while plot.fignum_exists(1):
+				# reset from beginning
+				if not frame <= frame_max:
+					frame = 1
+				# get current frame from effect
+				storage, l_colors = tree_effect.effect(storage, positions, frame)
+				draw(graph, frame, l_colors)
+				frame += 1
+			exit()
+		# 2 - only a CSV effect is loaded, error and quit
+		case 2:
+			print('Error: Cannot read CSV without GIFT')
+			time.sleep(2)
+			exit()
+		# 5 - a PY effect and coordinates are loaded, create csv, load it and play back
+		case 5:
+			# create a csv (also visualizes while creating)
+			# return the graph to keep playback after it's done
+			graph = create_csv()
+			# when CSV created, read its contents
+			read_csv()
+			# get frames from csv
+			frame = 1
+			frame_max = len(frame_times)
+			# preview while window open
+			while plot.fignum_exists(1):
+				# restart from beginning
+				if not frame <= frame_max:
+					frame = 1
+				# update plot
+				draw(graph, frame)
+				frame += 1
+			exit()
+		# 6 - coordinates and CSV effect loaded, play back the CSV
+		# 7 - coordinates, CSV and PY effects are loaded, ignore PY, play back CSV
+		case 6 | 7:
+			# read instructions from CSV
+			read_csv()
+			# set up frame counters
+			frame = 1
+			frame_max = len(frame_times)
+			# create window
+			graph = gui()
+			# while GUI open, update plot
+			while plot.fignum_exists(1):
+				# restart from beginning
+				if not frame <= frame_max:
+					frame = 1
+				# update plot
+				draw(graph, frame)
+				frame += 1
+			exit()
 
 
 # name guard
