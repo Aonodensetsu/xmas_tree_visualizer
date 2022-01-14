@@ -7,7 +7,6 @@ import tkinter
 import matplotlib
 # force mpl to use tkinter - it's bundled with python
 matplotlib.use('TkAgg', force=True)
-matplotlib.rc('grid', color='None')
 import matplotlib.pyplot as plot
 
 # fix for running via left click
@@ -29,10 +28,6 @@ colors = []
 # get tree coordinates
 def get_tree():
 	print('Fetching tree')
-	# get write access to shared variables
-	global x_positions
-	global y_positions
-	global z_positions
 	global positions
 	# check if GIFT available
 	if os.path.exists('coordinates.csv'):
@@ -144,6 +139,7 @@ def gui():
 	screen_measurer.destroy()
 	# create window
 	matplotlib.rcParams['toolbar'] = 'None'
+	matplotlib.rc('grid', color='None')
 	window = plot.figure(num='Christmas Tree Visualiser')
 	# move and resize window
 	window.canvas.manager.window.wm_geometry(f'+{left}+{top}')
@@ -195,7 +191,8 @@ def draw(graph, frame, color=None):
 	for dot in plot.gca().collections:
 		dot.remove()
 	# plot current values
-	graph.scatter3D(x_positions, y_positions, z_positions, c=color, cmap='rgb', norm=matplotlib.colors.Normalize(vmin=0, vmax=255))
+	normalizer = matplotlib.colors.Normalize(vmin=0, vmax=255)
+	graph.scatter3D(x_positions, y_positions, z_positions, c=color, cmap='rgb', norm=normalizer)
 	plot.draw()
 	# draw for frame_time
 	if color_flag:
@@ -225,8 +222,6 @@ def get_state():
 # run the program
 def main():
 	print('Running program')
-	# read shared variables
-	global positions
 	# check the current state of the program
 	match get_state():
 		# 0 - no files are loaded, show a default tree with black LEDs
