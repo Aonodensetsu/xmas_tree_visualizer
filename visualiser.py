@@ -2,7 +2,6 @@
 import os
 import sys
 import csv
-import time
 import math
 import tkinter
 import matplotlib
@@ -97,12 +96,13 @@ def create_csv():
 			draw(graph, frame, l_colors)
 			# create csv string for all leds
 			string = f'{frame_time}'
-			for led in denormalize_rgb(l_colors):
+			for led in l_colors:
 				for rgb in led:
 					string += f',{rgb}'
 			# update CSV file
 			effect_file.write(f'{string}\n')
 			frame += 1
+	# return created window to continue playback
 	return graph
 
 
@@ -122,7 +122,7 @@ def read_csv():
 			line_colors = []
 			for i in range(leds):
 				line_colors.append([float(line[3*i-2]), float(line[3*i-1]), float(line[3*i])])
-			colors.append(normalize_rgb(line_colors))
+			colors.append(line_colors)
 
 
 # create visualizer
@@ -181,6 +181,7 @@ def gui():
 
 # update plot
 def draw(graph, frame, color=None):
+	# ignore calls if no window exists
 	if not plot.fignum_exists(1):
 		return
 	# if color is given, it comes from a PY effect
@@ -194,7 +195,7 @@ def draw(graph, frame, color=None):
 	for dot in plot.gca().collections:
 		dot.remove()
 	# plot current values
-	graph.scatter3D(x_positions, y_positions, z_positions, c=color, cmap='rgb')
+	graph.scatter3D(x_positions, y_positions, z_positions, c=color, cmap='rgb', norm=matplotlib.colors.Normalize(vmin=0, vmax=255))
 	plot.draw()
 	# draw for frame_time
 	if color_flag:
@@ -202,22 +203,6 @@ def draw(graph, frame, color=None):
 	else:
 		pause_for = 1/tree_effect.frame_rate()
 	plot.pause(pause_for)
-
-
-# internally uses normalized rgb, writes 0-255 to csv
-def denormalize_rgb(rgb):
-	for i, v in enumerate(rgb):
-		for j, w in enumerate(v):
-			rgb[i][j] = round(255*w)
-	return rgb
-
-
-# reads 0-255 from csv, internally uses normalized
-def normalize_rgb(rgb):
-	for i, v in enumerate(rgb):
-		for j, w in enumerate(v):
-			rgb[i][j] = w/255
-	return rgb
 
 
 # check the current state
@@ -240,14 +225,17 @@ def get_state():
 # run the program
 def main():
 	print('Running program')
+	# read shared variables
+	global positions
 	# check the current state of the program
 	match get_state():
 		# 0 - no files are loaded, show a default tree with black LEDs
+		# 2 - only a CSV effect is loaded, ignore it since there is no tree
 		# 4 - only the coordinates are loaded, show the tree with black LEDs
-		case 0 | 4:
+		case 0 | 2 | 4:
 			# create a fake CSV with one frame
 			frame_times.append(1 / 30)
-			colors.append([[0, 0, 0] for _ in range(500)])
+			colors.append([[0, 0, 0] for _ in range(len(positions))])
 			# create window
 			graph = gui()
 			# draw gui
@@ -273,21 +261,17 @@ def main():
 				draw(graph, frame, l_colors)
 				frame += 1
 			exit()
-		# 2 - only a CSV effect is loaded, error and quit
-		case 2:
-			print('Error: Cannot read CSV without GIFT')
-			time.sleep(2)
-			exit()
-		# 5 - a PY effect and coordinates are loaded, create csv, load it and play back
+		# 5 - a PY effect and coordinates are loaded, play it and create csv
 		case 5:
 			# create a csv (also visualizes while creating)
-			# return the graph to keep playback after it's done
+			# return the created window to keep playback after it's done
 			graph = create_csv()
 			# when CSV created, read its contents
 			read_csv()
 			# get frames from csv
 			frame = 1
 			frame_max = len(frame_times)
+			print('Now previewing from CSV - check if compiled correctly')
 			# preview while window open
 			while plot.fignum_exists(1):
 				# restart from beginning
