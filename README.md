@@ -21,3 +21,7 @@ The effects are simple python files that consist of the following 3 functions:
   - frame - the current frame
 
 You can import visualizer.py safely due to a __name__ guard and you can compile csv by running main() after it's imported - it will not open a GUI.
+
+# X-zipper
+
+A tool to compress CSV effects to a smaller size, very fast compression but no error correction.
