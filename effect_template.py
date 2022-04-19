@@ -1,6 +1,6 @@
 def effect(storage, positions, frame):
     """
-    storage - you can write whatever data you want to store into it, will be returned to you next frame
+    storage - you can set it to whatever you want, will be returned to you next frame
 
     positions - are given to you as a list of dictionaries for each LED
     [ {x, y, z}, {x, y, z}, ... ]
@@ -8,7 +8,7 @@ def effect(storage, positions, frame):
 
     frame - gives you the current frame number (starts at 1, ends at frame_max())
 
-    return 2d array of normalized RGB values for each LED
+    return 2d list of normalized RGB values for each LED
     [ [r, g, b], [0.2, 0.7, 1], ... ]
     """
     rgb = [[0, 0, 0] for _ in range(len(positions))]
