@@ -5,11 +5,12 @@ import csv
 import math
 import tkinter
 import matplotlib
+
 # force mpl to use tkinter - it's bundled with python
 matplotlib.use('TkAgg', force=True)
 import matplotlib.pyplot as plot
 
-# fix for running via left click
+# fix for running via left click (changes cwd to file location)
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
 # try to import PY effect
@@ -104,8 +105,7 @@ def create_csv():
 # read instructions
 def read_csv():
 	print('Reading CSV')
-	global frame_times
-	global colors
+	global frame_times, colors
 	# clear global tables to not get corrupted
 	frame_times = []
 	colors = []
