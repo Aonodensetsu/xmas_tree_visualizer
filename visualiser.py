@@ -48,7 +48,7 @@ def get_tree():
 		print('Creating tree')
 		theta = 0
 		height = 0.006
-		for i in range(500):
+		for _ in range(500):
 			theta_rad = math.radians(theta)
 			radius = (0.006*525-height)/3.6
 			x_positions.append(radius * math.cos(theta_rad))
