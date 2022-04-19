@@ -18,11 +18,9 @@ def effect(storage, positions, frame):
 
 
 def frame_max():
-    # length of the animation
     # var length is used in hue calculation, so the animation loops
     return length
 
 
 def frame_rate():
-    # frame rate
     return 30

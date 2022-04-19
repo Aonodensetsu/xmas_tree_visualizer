@@ -122,7 +122,7 @@ def read_csv():
 
 # create visualizer
 def gui():
-	# don't draw if importing, but still allow creating a csv by calling main()
+	# don't draw anything if importing, but still allow creating a csv by calling main()
 	if not __name__ == '__main__':
 		return
 	print('Creating GUI')
@@ -166,7 +166,7 @@ def gui():
 	graph.tick_params(which='both', color='None', labelcolor='white')
 	graph.tick_params(axis='both', pad=5)
 	graph.tick_params(axis='z', pad=15)
-	# plot wires connecting leds
+	# plot 'wires' connecting leds
 	graph.plot(x_positions, y_positions, z_positions, color=(0, 0, 0, 0.08))
 	# set correct aspect ratio
 	graph.set_box_aspect([ub - lb for lb, ub in (getattr(graph, f'get_{a}lim')() for a in 'xyz')])
@@ -181,6 +181,7 @@ def draw(graph, frame, color=None):
 	if not plot.fignum_exists(1):
 		return
 	# if color is given, it comes from a PY effect
+	# else get the data from the global which stores compiled csv
 	color_flag = 0
 	if not color:
 		global colors
@@ -191,6 +192,8 @@ def draw(graph, frame, color=None):
 	for dot in plot.gca().collections:
 		dot.remove()
 	# plot current values
+	# csv doesn't use normalized values, use the normalizer just in case
+	# (values in the range of 0-1 are ignored so no need to disable the normalizer when reading normalized values)
 	normalizer = matplotlib.colors.Normalize(vmin=0, vmax=255)
 	graph.scatter3D(x_positions, y_positions, z_positions, c=color, cmap='rgb', norm=normalizer)
 	plot.draw()
@@ -222,7 +225,6 @@ def get_state():
 # run the program
 def main():
 	print('Running program')
-	# check the current state of the program
 	match get_state():
 		# 0 - no files are loaded, show a default tree with black LEDs
 		# 2 - only a CSV effect is loaded, ignore it since there is no tree
@@ -279,7 +281,6 @@ def main():
 		# 6 - coordinates and CSV effect loaded, play back the CSV
 		# 7 - coordinates, CSV and PY effects are loaded, ignore PY, play back CSV
 		case 6 | 7:
-			# read instructions from CSV
 			read_csv()
 			# set up frame counters
 			frame = 1
