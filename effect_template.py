@@ -1,6 +1,7 @@
 def effect(storage, positions, frame):
     """
     storage - you can set it to whatever you want, will be returned to you next frame
+    it's a way of storing data you might need to access across multiple frames
 
     positions - are given to you as a list of dictionaries for each LED
     [ {x, y, z}, {x, y, z}, ... ]
