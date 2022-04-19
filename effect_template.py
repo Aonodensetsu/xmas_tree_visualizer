@@ -12,7 +12,7 @@ def effect(storage, positions, frame):
     return 2d list of normalized RGB values for each LED
     [ [r, g, b], [0.2, 0.7, 1], ... ]
     """
-    rgb = [[0, 0, 0] for _ in range(len(positions))]
+    rgb = [[0, 0, 0] for _ in range(len(positions))]  # to make sure the template is a valid effect, will set all LEDs to black
     return storage, rgb
 
 
