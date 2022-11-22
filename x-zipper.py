@@ -1,69 +1,90 @@
-import os
+# import required libraries
 import csv
-import time
+import os
 
+# fix for running via left click (changes cwd to file location)
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
-frame_rates = []
-colors = []
+frames = []  # {t: 1/frame rate, c: [{r, g, b} per LED, normalized]} per frame
 
 
+# read frame descriptions
 def read_csv():
-    with open('tree_effect.csv', mode='r', encoding='utf-8-sig') as csv_input:
-        file = list(csv.reader(csv_input))
-        leds = int((len(file[0]) - 1) / 3)
-        for row in file[1:]:
-            frame_rates.append(int(1/float(row[0])))
-            line_colors = []
-            for i in range(leds):
-                line_colors.append([int(row[3 * (i + 1) - 2]), int(row[3 * (i + 1) - 1]), int(row[3 * (i + 1)])])
-            colors.append(line_colors)
+    global frames
+    print('Reading CSV')
+    with open('tree_effect.csv', mode='r', encoding='utf-8-sig') as f:
+        reader = list(csv.reader(f))[1:]
+        # overwrite table to prevent corruption
+        frames = [
+            {'tr': int(1/float(line[0])), 'c': [
+                {
+                    'r': int(line[3*i-2]),
+                    'g': int(line[3*i-1]),
+                    'b': int(line[3*i])
+                }
+                for i in range(1, int((len(reader[0]) - 1) / 3) + 1)
+            ]}
+            for line in reader
+        ]
 
 
 def read_xtree():
+    global frames
+    print('Reading XTREE')
     bytes_total = os.path.getsize('tree_effect.xtree')
-    with open('tree_effect.xtree', mode='br+') as xtree_input:
-        leds = int.from_bytes(xtree_input.read(2), 'big')
-        frames = int((bytes_total - 2) / (leds * 3 + 2))
-        for i in range(frames):
-            frame_rates.append(int.from_bytes(xtree_input.read(2), 'big'))
-            frame_colors = []
-            for j in range(leds):
-                led = [int.from_bytes(xtree_input.read(1), 'big'), int.from_bytes(xtree_input.read(1), 'big'), int.from_bytes(xtree_input.read(1), 'big')]
-                frame_colors.append(led)
-            colors.append(frame_colors)
+    with open('tree_effect.xtree', mode='br+') as xf:
+        leds = int.from_bytes(xf.read(2), 'big')
+        frame_num = int((bytes_total - 2) / (leds * 3 + 2))
+        for _ in range(frame_num):
+            frame_rate = int.from_bytes(xf.read(2), 'big')
+            colors = []
+            for _ in range(leds):
+                colors.append({
+                    'r': int.from_bytes(xf.read(1), 'big'),
+                    'g': int.from_bytes(xf.read(1), 'big'),
+                    'b': int.from_bytes(xf.read(1), 'big')
+                })
+            frames.append({'tr': frame_rate, 'c': colors})
 
 
 def create_csv():
-    with open('tree_effect.csv', mode='w') as csv_output:
+    global frames
+    print('Creating CSV')
+    # create the csv header string
+    # the string if very long, so construct it programmatically
+    with open('tree_effect.csv', mode='w') as f:
         string = 'FRAME_TIME'
         for i in range(500):
-            for j in range(3):
-                color = 'R' if j % 3 == 0 else 'G' if j % 3 == 1 else 'B'
-                string += f',{color}_{i}'
-        csv_output.write(f'{string}\n')
-        for i in range(len(colors)):
-            csv_output.write(f'{round(1/frame_rates[i], 5)}')
-            for j in range(len(colors[i])):
-                for k in range(len(colors[i][j])):
-                    csv_output.write(f',{colors[i][j][k]}')
-            csv_output.write('\n')
+            for j in ['R', 'G', 'B']:
+                string += f',{j}_{i}'
+        f.write(f'{string}\n')
+    with open('tree_effect.csv', mode='a+') as f:
+        for i in frames:
+            string = str(round(1/i['tr'], 7))
+            for j in i['c']:
+                for k in ['r', 'g', 'b']:
+                    string += ','+str(j[k])
+            f.write(string+'\n')
 
 
 def create_xtree():
-    with open('tree_effect.xtree', mode='bw+') as xtree_output:
-        xtree_output.write((len(colors[0])).to_bytes(2, 'big'))
+    global frames
+    print('Creating XTREE')
+    with open('tree_effect.xtree', mode='bw+') as xf:
+        # amount of LEDs
+        xf.write(int(len(frames[0]['c'])).to_bytes(2, 'big'))
         # for each animation frame
-        for i in range(len(colors)):
-            xtree_output.write((frame_rates[i].to_bytes(2, 'big')))
+        for i in frames:
+            xf.write(i['tr'].to_bytes(2, 'big'))
             # for each LED
-            for j in range(len(colors[i])):
+            for j in i['c']:
                 # for each RGB
-                for k in range(len(colors[i][j])):
-                    xtree_output.write(bytes([colors[i][j][k]]))
+                for k in ['r', 'g', 'b']:
+                    xf.write(j[k].to_bytes(1, 'big'))
 
 
 def main():
+    global frames
     print('X-zipper - a tool to compress CSV animations')
     print('Which type of file to convert?')
     file_type = input('(csv/xtree): ')
@@ -75,7 +96,7 @@ def main():
         create_csv()
     else:
         print('Error: No such type')
-        time.sleep(2)
+        input()
         exit()
 
 

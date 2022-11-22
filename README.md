@@ -17,4 +17,4 @@ Note: You can import visualizer.py in your script to compile py into csv (by run
 
 # X-zipper
 
-A tool to compress CSV effects to a smaller size, very fast compression but no error correction.
+A tool to compress CSV effects to a smaller size, very fast compression but no error correction (there is error correction in pretty much any network protocol, the chance to corrupt is negligible and *if* it happens, will only affect a single LED).
