@@ -17,5 +17,7 @@ Note: You can import visualizer.py in your script to compile py into csv (by run
 
 # X-zipper
 
-A tool to compress CSV effects to a smaller size, very fast compression but no error correction.  
+A tool to compress CSV effects to a (much) smaller size (33% of the CSV on average), very fast compression but no error correction.  
 (there is error correction in pretty much any network protocol, the chance to corrupt is negligible and *if* it happens, will only affect a single LED).
+
+The format itself is essentially a binary representation of the CSV, so it is possible to read and display directly from it, as easily as it is to read from a CSV - the two even share the same internal representation within my code, so it is a drop-in replacement for the CSVs, and will be implemented as such soon.
