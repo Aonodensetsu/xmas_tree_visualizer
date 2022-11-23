@@ -50,8 +50,8 @@ def get_tree():
 		return False
 
 
-# compile to csv
-def create_csv():
+# compile PY effect to CSV and preview
+def generate_csv():
 	global positions
 	print('Generating CSV - will preview from PY as it renders')
 	# create the csv header string
@@ -92,7 +92,29 @@ def create_csv():
 	return graph
 
 
-# read frame descriptions
+# read frame descriptions from XTREE
+def read_xtree():
+	global frames
+	# overwrite table to prevent corruption
+	frames = []
+	print('Reading XTREE')
+	bytes_total = os.path.getsize('tree_effect.xtree')
+	with open('tree_effect.xtree', mode='br+') as xf:
+		leds = int.from_bytes(xf.read(2), 'big')
+		frame_num = int((bytes_total - 2) / (leds * 3 + 2))
+		for _ in range(frame_num):
+			frame_time = 1/int.from_bytes(xf.read(2), 'big')
+			colors = []
+			for _ in range(leds):
+				colors.append({
+					'r': float(int.from_bytes(xf.read(1), 'big'))/255,
+					'g': float(int.from_bytes(xf.read(1), 'big'))/255,
+					'b': float(int.from_bytes(xf.read(1), 'big'))/255
+				})
+			frames.append({'t': frame_time, 'c': colors})
+
+
+# read frame descriptions from CSV
 def read_csv():
 	global frames
 	print('Reading CSV')
@@ -113,6 +135,44 @@ def read_csv():
 		]
 
 
+# create CSV file from internal representation
+def create_csv():
+	global frames
+	print('Creating CSV')
+	# create the csv header string
+	# the string if very long, so construct it programmatically
+	with open('tree_effect.csv', mode='w') as f:
+		string = 'FRAME_TIME'
+		for i in range(500):
+			for j in ['R', 'G', 'B']:
+				string += f',{j}_{i}'
+		f.write(f'{string}\n')
+	with open('tree_effect.csv', mode='a+') as f:
+		for i in frames:
+			string = str(round(i['t'], 7))
+			for j in i['c']:
+				for k in ['r', 'g', 'b']:
+					string += ','+str(int(j[k]*255))
+			f.write(string+'\n')
+
+
+# create XTREE file from internal representation
+def create_xtree():
+	global frames
+	print('Creating XTREE')
+	with open('tree_effect.xtree', mode='bw+') as xf:
+		# amount of LEDs
+		xf.write(int(len(frames[0]['c'])).to_bytes(2, 'big'))
+		# for each animation frame
+		for i in frames:
+			xf.write(int(1/i['t']).to_bytes(2, 'big'))
+			# for each LED
+			for j in i['c']:
+				# for each RGB
+				for k in ['r', 'g', 'b']:
+					xf.write(int(j[k]*255).to_bytes(1, 'big'))
+
+
 # check the existence of files that change app behavior
 def get_state():
 	print('Checking available files')
@@ -124,9 +184,12 @@ def get_state():
 	# is a CSV effect available?
 	if os.path.exists('tree_effect.csv'):
 		state += 1 << 1
+	# is an XTREE effect available?
+	if os.path.exists('tree_effect.xtree'):
+		state += 1 << 2
 	# are coordinates available?
 	if get_tree():
-		state += 1 << 2
+		state += 1 << 3
 	return state
 
 
@@ -208,19 +271,24 @@ def draw(graph, frame):
 
 def main():
 	global positions, frames
-	match get_state():
+	state = get_state()
+	match state:
 		# 0 - (nothing loaded)     show a placeholder tree with black LEDs
-		# 2 - (csv loaded)         ignore csv since there are no coordinates -> 0
-		# 4 - (coordinates loaded) show the tree with black LEDs
-		case 0 | 2 | 4:
+		# 2 - (csv loaded)         ignore CSV since there are no coordinates -> 0
+		# 4 - (xtree loaded)       ignore XTREE since there are no coordinates -> 0
+		# 6 - (csv, xtree loaded)  ignore CSV & XTREE -> 0
+		# 8 - (coordinates loaded) show the tree with black LEDs
+		case 0 | 2 | 4 | 6 | 8:
 			# create window
 			graph = gui()
 			# draw gui with a fake frame
 			draw(graph, {'t': 1/30, 'c': [{'r': 0, 'g': 0, 'b': 0} for _ in positions]})
 			plot.show()
-		# 1 - (py loaded)      show on a placeholder tree
-		# 3 - (py, csv loaded) ignore CSV since there are no coordinates -> 1
-		case 1 | 3:
+		# 1 - (py loaded)             show on a placeholder tree
+		# 3 - (py, csv loaded)        ignore CSV -> 1
+		# 5 - (py, xtree loaded)      ignore XTREE -> 1
+		# 7 - (py, csv, xtree loaded) ignore CSV & XTREE -> 1
+		case 1 | 3 | 5 | 7:
 			# set up frame counters
 			frame = 1
 			# give storage to the PY effect
@@ -235,14 +303,16 @@ def main():
 				storage, colors = tree_effect.run(storage, positions, frame)
 				draw(graph, {'t': 1/tree_effect.frame_rate(), 'c': colors})
 				frame += 1
-		# 5 - (py, coordinates loaded) play the py effect and generate csv
-		case 5:
+		# 9 - (py, coordinates loaded) play the PY effect and generate static files
+		case 9:
 			# create a csv
 			print('Coordinates loaded - will compile to CSV')
-			graph = create_csv()
+			graph = generate_csv()
 			# when CSV created, read its contents
 			print('Compiled - will load and preview from CSV, check for errors')
 			read_csv()
+			# create a smaller representation of the effect
+			create_xtree()
 			# get frames from csv
 			frame = 1
 			# preview while window open
@@ -253,10 +323,11 @@ def main():
 				# update plot
 				draw(graph, frames[frame-1])
 				frame += 1
-		# 6 - (csv, coordinates loaded)     play back the CSV
-		# 7 - (py, csv, coordinates loaded) ignore py since csv exists -> 6
-		case 6 | 7:
+		# 10 - (csv, coordinates loaded)     play back the CSV, generate XTREE
+		# 11 - (py, csv, coordinates loaded) ignore PY since csv exists -> 10
+		case 10 | 11:
 			read_csv()
+			create_xtree()
 			# set up frame counters
 			frame = 1
 			# create window
@@ -268,6 +339,27 @@ def main():
 					frame = 1
 				# update plot
 				draw(graph, frames[frame-1])
+				frame += 1
+		# 12 - (xtree, coordinates)          play back the XTREE, generate CSV
+		# 13 - (py, xtree, coordinates)      ignore PY since XTREE exists -> 12
+		# 14 - (csv, xtree, coordinates)     ignore CSV -> 12
+		# 15 - (py, csv, xtree, coordinates) ignore PY and CSV -> 12
+		case 12 | 13 | 14 | 15:
+			read_xtree()
+			# don't overwrite an existing CSV
+			if state < 14:
+				create_csv()
+			# set up frame counters
+			frame = 1
+			# create window
+			graph = gui()
+			# while GUI open, update plot
+			while plot.fignum_exists(1):
+				# restart from beginning
+				if not frame <= len(frames):
+					frame = 1
+				# update plot
+				draw(graph, frames[frame - 1])
 				frame += 1
 
 
