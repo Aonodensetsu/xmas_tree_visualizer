@@ -2,10 +2,16 @@ from typing import Any
 import math
 import colorsys
 
-length = 72
+
+def frame_max() -> int:
+    return 72
 
 
-def run(storage: Any, positions: list[dict], frame: int) -> (Any, list[dict]):
+def frame_time(frame: int) -> float:
+    return 1/30
+
+
+def run(positions: list[dict], frame: int, storage: Any) -> (list[dict], Any):
     rgb = []
     # calculate rgb for each light
     for i, led in enumerate(positions):
@@ -15,16 +21,7 @@ def run(storage: Any, positions: list[dict], frame: int) -> (Any, list[dict]):
         distance_percent /= 3.3
         # add some offset based on current frame
         # hsv_to_hue expects normalized values so mod 1
-        hue = (distance_percent + frame / length) % 1
+        hue = (distance_percent + frame / frame_max()) % 1
         r, g, b = colorsys.hsv_to_rgb(hue, 1, 0.8)
         rgb.append({'r': r, 'g': g, 'b': b})
-    return storage, rgb
-
-
-def frame_max() -> int:
-    # var length is used in hue calculation, so the animation loops
-    return length
-
-
-def frame_rate() -> int:
-    return 30
+    return rgb, storage
