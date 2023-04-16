@@ -4,7 +4,7 @@ A python wrapper for creating and viewing effects for Matt Parker's (or any othe
 To use it you need to do a few simple things:
 - have *python* (v3.10+) and module *matplotlib* installed
   - all other modules should be installed with Python by default (except tkinter on some installations)
-- download and run [visualizer.py](https://raw.githubusercontent.com/Aonodensetsu/xmax-tree-visualizer/main/visualiser.py)
+- download [visualizer.py](https://raw.githubusercontent.com/Aonodensetsu/xmax-tree-visualizer/main/visualiser.py) and [x_zipper.py](https://raw.githubusercontent.com/Aonodensetsu/xmas_tree_visualizer/main/x_zipper.py) and run the visualizer
 
 You can extend its functionality by placing additional files in the same folder as the script:
 - coordinates.csv - *GIFT* coordinates for a tree ([official 2021](https://www.dropbox.com/s/lmccfutftplhh3b/coords_2021.csv)), will allow you to preview CSV and XTREE effects and compile PY into CSV/XTREE
