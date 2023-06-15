@@ -1,6 +1,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Optional
+from tqdm import tqdm
 import importlib.util
 import math
 import csv
@@ -119,9 +120,9 @@ class PY(Format):
         module = importlib.util.module_from_spec(spec)
         tree_effect = sys.modules['tree_effect'] = module
         spec.loader.exec_module(module)
-        frame = 1
         storage = None
-        while frame <= tree_effect.frame_max():
+        print('Compiling effect...')
+        for frame in tqdm(range(1, tree_effect.frame_max()+1)):
             colors, storage = tree_effect.run(self.coords.data, frame, storage)
             self.data.append({'t': tree_effect.frame_time(frame), 'c': colors})
             frame += 1
