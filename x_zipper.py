@@ -28,8 +28,6 @@ class Format(ABC):
     def __init__(self, data: Optional[list] = None, filename: Optional[str] = None) -> None:
         self.data = data
         self.filename = filename or 'tree_effect'
-        if not data:
-            self.read()
 
     def convert(self, other: type[Format], *args, **kwargs) -> Format:
         if not self.data:
