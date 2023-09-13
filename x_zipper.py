@@ -1,15 +1,13 @@
 from __future__ import annotations
-from abc import ABC, abstractmethod
-from typing import Optional
-from tqdm import tqdm
-import importlib.util
-import math
-import csv
-import sys
-import os
 
-# fix running by left click
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
+from importlib.util import spec_from_file_location, module_from_spec
+from os.path import exists, getsize, dirname, realpath
+from abc import ABC, abstractmethod
+from csv import reader, DictReader
+from math import cos, sin, pow
+from sys import modules
+from tqdm import tqdm
+from os import chdir
 
 
 class Format(ABC):
@@ -21,13 +19,13 @@ class Format(ABC):
     #            r: normalized red value
     #            g: normalized green value
     #            b: normalized blue value
-    data: list
-    filename: str = 'tree_effect'
-    ext: str = '.format'
+    data: list | None
+    filename: str
+    ext: str = '.abstract'
 
-    def __init__(self, data: Optional[list] = None, filename: Optional[str] = None) -> None:
+    def __init__(self, data: list | None = None, filename: str = 'tree_effect') -> None:
         self.data = data
-        self.filename = filename or 'tree_effect'
+        self.filename = filename
 
     def convert(self, other: type[Format], *args, **kwargs) -> Format:
         if not self.data:
@@ -36,19 +34,18 @@ class Format(ABC):
 
     @abstractmethod
     def read(self) -> Format:
-        if not os.path.exists(self.filename + self.ext):
+        if not exists(self.filename + self.ext):
             raise EnvironmentError('File does not exist')
-        self.data = []
-        with open(self.filename + self.ext, mode='r') as f:
-            pass  # read file into data
+        with open(self.filename + self.ext, mode='r', encoding='utf-8') as f:
+            self.data = []  # IMPLEMENT read
         return self
 
     @abstractmethod
     def write(self) -> Format:
         if not self.data:
             raise EnvironmentError('No data to write')
-        with open(self.filename + self.ext, mode='w') as f:
-            pass  # write data into file
+        with open(self.filename + self.ext, mode='w', encoding='utf-8') as f:
+            pass  # IMPLEMENT write
         return self
 
 
@@ -60,39 +57,38 @@ class Coordinates:
     #     y: y coordinate
     #     z: z coordinate
     data: list
-    filename: str = 'coordinates'
+    filename: str
     ext: str = '.csv'
 
-    def __init__(self, data: Optional[list] = None, filename: Optional[str] = None) -> None:
+    def __init__(self, data: list | None = None, filename: str = 'coordinates') -> None:
         self.data = data
-        self.filename = filename or 'coordinates'
+        self.filename = filename
 
     def read(self) -> Coordinates:
-        if not os.path.exists(self.filename + self.ext):
+        if not exists(self.filename + self.ext):
             raise EnvironmentError('File not found')
-        self.data = []
-        with open(self.filename + self.ext, mode='r', encoding='utf-8-sig') as f:
-            for line in f.readlines():
-                x, y, z = line.split(',')
-                self.data.append({'x': float(x), 'y': float(y), 'z': float(z)})
+        with open(self.filename + self.ext, mode='r', encoding='utf-8') as f:
+            self.data = []
+            for line in DictReader(f, fieldnames=['x', 'y', 'z']):
+                self.data.append({'x': float(line['x']), 'y': float(line['y']), 'z': float(line['z'])})
         return self
 
     def write(self) -> Coordinates:
         if not self.data:
             raise EnvironmentError('No data to write')
-        with open(self.filename + self.ext, mode='w', encoding='utf-8-sig') as f:
+        with open(self.filename + self.ext, mode='w', encoding='utf-8') as f:
             for line in self.data:
-                f.write(f"{round(line['x'], 9)},{round(line['y'], 9)},{round(line['z'], 9)}")
+                f.write(f"{round(line['x'], 12)},{round(line['y'], 12)},{round(line['z'], 12)}\n")
         return self
 
-    def make(self) -> Coordinates:
+    def make(self, n: int = 500) -> Coordinates:
         self.data = []
         theta = 0
         height = 0.006
-        for _ in range(499):
-            radius = (0.006 * 510 - height) / 3.6
-            self.data.append({'x': radius * math.cos(theta), 'y': radius * math.sin(theta), 'z': height})
-            theta = (theta + 0.174533 / math.pow(radius, 3 / 5)) % 6.28319
+        for _ in range(n-1):
+            radius = (0.006 * (n + 10) - height) / 3.6
+            self.data.append({'x': radius * cos(theta), 'y': radius * sin(theta), 'z': height})
+            theta = (theta + 0.174533 / pow(radius, 3 / 5)) % 6.28319
             height += 0.006
         self.data.append({'x': 0, 'y': 0, 'z': height + 0.012})
         return self
@@ -100,153 +96,134 @@ class Coordinates:
 
 class PY(Format):
     coords: Coordinates
+    filename: str = 'tree_effect'
     ext: str = '.py'
 
     def __init__(self,
-                 data: Optional[list] = None,
-                 filename: Optional[str] = None,
-                 coordinates: Optional[Coordinates] = None
+                 data: list | None = None,
+                 filename: str = 'tree_effect',
+                 coordinates: Coordinates = Coordinates().make()
                  ) -> None:
-        self.coords = coordinates or Coordinates().make()
         super().__init__(data, filename)
+        self.coords = coordinates
 
     def read(self) -> PY:
-        if not os.path.exists(self.filename + self.ext):
+        if not exists(self.filename + self.ext):
             raise EnvironmentError('File does not exist')
         self.data = []
-        spec = importlib.util.spec_from_file_location('tree_effect', self.filename + self.ext)
-        module = importlib.util.module_from_spec(spec)
-        tree_effect = sys.modules['tree_effect'] = module
-        spec.loader.exec_module(module)
+        spec = spec_from_file_location('tree_effect', self.filename + self.ext)
+        tree_effect = modules['tree_effect'] = module_from_spec(spec)
+        spec.loader.exec_module(tree_effect)
         storage = None
-        print('Compiling effect...')
+        print('Compiling effect frames...')
         for frame in tqdm(range(1, tree_effect.frame_max()+1)):
             colors, storage = tree_effect.run(self.coords.data, frame, storage)
             self.data.append({'t': tree_effect.frame_time(frame), 'c': colors})
-            frame += 1
         return self
 
-    def write(self) -> PY:
+    def write(self) -> None:
         raise EnvironmentError('Cannot reconstruct a script representation')
 
 
 class CSV(Format):
+    filename: str
     ext: str = '.csv'
 
     def read(self) -> CSV:
-        if not os.path.exists(self.filename + self.ext):
+        if not exists(self.filename + self.ext):
             raise EnvironmentError('File does not exist')
         self.data = []
-        with open(self.filename + self.ext, mode='r', encoding='utf-8-sig') as f:
-            reader = list(csv.reader(f))[1:]
+        with open(self.filename + self.ext, mode='r', encoding='utf-8') as f:
+            creader = reader(f)
+            leds = range(1, int(((len(str(next(creader)).split(',')) - 1) / 3) + 1))  # get length from header
             self.data = [
                 {'t': float(line[0]), 'c': [
                     {
-                        'r': float(line[3 * i - 2])/255,
-                        'g': float(line[3 * i - 1])/255,
-                        'b': float(line[3 * i])/255
+                        'r': float(line[3 * i - 2]) / 255,
+                        'g': float(line[3 * i - 1]) / 255,
+                        'b': float(line[3 * i]) / 255
                     }
-                    for i in range(1, int((len(reader[0]) - 1) / 3) + 1)
+                    for i in leds
                 ]}
-                for line in reader
+                for line in creader
             ]
         return self
 
     def write(self) -> CSV:
         if not self.data:
             raise EnvironmentError('No data to write')
-        with open(self.filename + self.ext, mode='w') as f:
-            string = 'FRAME_TIME'
-            for i in range(500):
-                for j in ['R', 'G', 'B']:
-                    string += f',{j}_{i}'
-            f.write(f'{string}\n')
-        with open(self.filename + self.ext, mode='a+') as f:
+        with open(self.filename + self.ext, mode='w', encoding='utf-8') as f:
+            f.write(
+                f'FRAME_TIME,{",".join(f"{j}_{i}" for j in ["R", "G", "B"] for i in range(len(self.data[0]["c"])))}\n'
+            )
+        with open(self.filename + self.ext, mode='a+', encoding='utf-8') as f:
             for i in self.data:
-                string = str(i['t'])
-                for j in i['c']:
-                    for k in ['r', 'g', 'b']:
-                        string += ',' + str(int(j[k]*255))
-                f.write(string + '\n')
+                f.write(f'{i["t"]},{",".join(str(int(j[k] * 255)) for j in i["c"] for k in ["r", "g", "b"])}\n')
         return self
 
 
 class XTREE(Format):
+    filename: str
     ext: str = '.xtree'
 
     def read(self) -> XTREE:
-        if not os.path.exists(self.filename + self.ext):
+        if not exists(self.filename + self.ext):
             raise EnvironmentError('File does not exist')
         self.data = []
-        bytes_total = os.path.getsize(self.filename + self.ext)
-        with open(self.filename + self.ext, mode='br+') as xf:
-            leds = int.from_bytes(xf.read(2), 'big')
-            frame_num = int((bytes_total - 2) / (leds * 3 + 2))
-            for _ in range(frame_num):
-                frame_time = 1/float(int.from_bytes(xf.read(2), 'big'))
-                colors = []
-                for _ in range(leds):
-                    colors.append({
-                        'r': float(int.from_bytes(xf.read(1), 'big'))/255,
-                        'g': float(int.from_bytes(xf.read(1), 'big'))/255,
-                        'b': float(int.from_bytes(xf.read(1), 'big'))/255
-                    })
-                self.data.append({'t': frame_time, 'c': colors})
+        with open(self.filename + self.ext, mode='br+') as f:
+            leds = int.from_bytes(f.read(3), 'big', signed=False)
+            for _ in range(int((getsize(self.filename + self.ext) - 3) / (leds * 3 + 2))):
+                self.data.append({'t': 1/float(int.from_bytes(f.read(2), 'big', signed=False)), 'c': [
+                    {
+                        'r': float(int.from_bytes(f.read(1), 'big', signed=False)) / 255,
+                        'g': float(int.from_bytes(f.read(1), 'big', signed=False)) / 255,
+                        'b': float(int.from_bytes(f.read(1), 'big', signed=False)) / 255
+                    }
+                    for _ in range(leds)
+                ]})
         return self
 
     def write(self) -> XTREE:
         if not self.data:
             raise EnvironmentError('No data to write')
-        with open(self.filename + self.ext, mode='bw+') as xf:
-            xf.write(int(len(self.data[0]['c'])).to_bytes(2, 'big'))
+        with open(self.filename + self.ext, mode='bw+') as f:
+            f.write(int(len(self.data[0]['c'])).to_bytes(3, 'big', signed=False))
             for i in self.data:
-                xf.write(int(1/i['t']).to_bytes(2, 'big'))
-                for j in i['c']:
-                    for k in ['r', 'g', 'b']:
-                        xf.write(int(j[k]*255).to_bytes(1, 'big'))
+                f.write(int(1/i['t']).to_bytes(2, 'big', signed=False))
+                for j, k in ((j, k) for j in i['c'] for k in ['r', 'g', 'b']):
+                    f.write(int(j[k] * 255).to_bytes(1, 'big', signed=False))
         return self
 
 
 def main():
     print('X-zipper - a tool to convert between animation types')
-    print('File type to convert from?')
-    file_type = input('(py/csv/xtree): ')
-    if file_type not in ['py', 'csv', 'xtree']:
-        print('Error: No such type')
-        raise NotImplementedError
-    print('File name to read?')
-    match file_type:
+    match input('From type (py/csv/xtree): '):
         case 'py':
-            file_name = input(f'[{PY.ext}]({PY.filename}): ') or PY.filename
-            print('Coordinate file name to read (ignore if none exists)?')
-            c = Coordinates(filename=(input(f'[.csv]({Coordinates.filename}): ') or Coordinates.filename))
+            c = Coordinates(
+                filename=(input(f'From coordinates [.csv]({Coordinates.filename}): ') or Coordinates.filename)
+            )
             try:
                 c.read()
             except EnvironmentError:
                 c.make()
-            a = PY(filename=file_name, coordinates=c).read()
-            print('File type to convert into?')
-            convert_type = input('(csv/xtree): ')
-            if convert_type not in ['csv', 'xtree']:
-                print('Error: No such type')
-                raise NotImplementedError
-            match convert_type:
+            a = PY(filename=(input(f'From file [{PY.ext}]({PY.filename}): ') or PY.filename), coordinates=c).read()
+            match input('To type (csv/xtree): '):
                 case 'csv':
-                    print('File name to write?')
-                    a = a.convert(CSV, input(f'[{CSV.ext}]({CSV.filename})') or CSV.filename)
-                case 'xtree':
-                    print('File name to write?')
-                    a = a.convert(XTREE, input(f'[{XTREE.ext}]({XTREE.filename})') or XTREE.filename)
+                    a = a.convert(CSV, input(f'To file [{CSV.ext}]({CSV.filename})') or CSV.filename)
+                case 'xtree':\
+                    a = a.convert(XTREE, input(f'To file [{XTREE.ext}]({XTREE.filename})') or XTREE.filename)
+                case _:
+                    raise NotImplementedError('No such type')
             a.write()
         case 'csv':
-            a = CSV(filename=(input(f'[{CSV.ext}]({CSV.filename}): ') or CSV.filename)).read()
-            print('File name to write?')
-            a.convert(XTREE, input(f'[{XTREE.ext}]({XTREE.filename})') or XTREE.filename).write()
+            a = CSV(filename=(input(f'From file [{CSV.ext}]({CSV.filename}): ') or CSV.filename)).read()
+            a.convert(XTREE, input(f'To file [{XTREE.ext}]({XTREE.filename})') or XTREE.filename).write()
         case 'xtree':
-            a = XTREE(filename=(input(f'[{XTREE.ext}]({XTREE.filename}): ') or XTREE.filename)).read()
-            print('File name to write?')
-            a.convert(CSV, input(f'[{CSV.ext}]({CSV.filename})') or CSV.filename).write()
+            a = XTREE(filename=(input(f'From file [{XTREE.ext}]({XTREE.filename}): ') or XTREE.filename)).read()
+            a.convert(CSV, input(f'To file [{CSV.ext}]({CSV.filename})') or CSV.filename).write()
+        case _: raise NotImplementedError('No such type')
 
 
 if __name__ == '__main__':
+    chdir(dirname(realpath(__file__)))  # fix running by left click
     main()

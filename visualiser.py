@@ -1,13 +1,11 @@
-import os
-import tkinter
-import matplotlib
 from x_zipper import Coordinates, PY, CSV, XTREE
+from contextlib import suppress
+import matplotlib
+import tkinter
+import os
 
 matplotlib.use('TkAgg', force=True)
 import matplotlib.pyplot as plot
-
-# fix running by left click
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
 
 def gui(leds):
@@ -40,8 +38,17 @@ def gui(leds):
     graph.set_xlabel('X', color='white', labelpad=-5)
     graph.set_ylabel('Y', color='white', labelpad=-5)
     graph.set_zlabel('Z', color='white', labelpad=5)
-    graph.set(xlim3d=(-1, 1), ylim3d=(-1, 1), zlim3d=(0, max(p['z'] for p in leds)))
-    graph.set(xticks=[-1, 1], yticks=[-1, 1], zticks=[0, max(p['z'] for p in leds)])
+    min_x = min_y = min_z = max_x = max_y = max_z = None
+    for led in leds:
+        x, y, z = led['x'], led['y'], led['z']
+        if min_x is None or x < min_x: min_x = x
+        if min_y is None or y < min_y: min_y = y
+        if min_z is None or z < min_z: min_z = z
+        if max_x is None or x > max_x: max_x = x
+        if max_y is None or y > max_y: max_y = y
+        if max_z is None or z > max_z: max_z = z
+    graph.set(xlim3d=(min_x, max_x), ylim3d=(min_y, max_y), zlim3d=(min_z, max_z))
+    graph.set(xticks=[min_x, max_x], yticks=[min_y, max_y], zticks=[min_z, max_z])
     graph.margins(x=0, y=0, z=0, tight=True)
     graph.tick_params(which='both', color='None', labelcolor='white')
     graph.tick_params(axis='both', pad=5)
@@ -55,17 +62,15 @@ def gui(leds):
 
 def draw(gui, leds, frame):
     # do not draw if the window was closed
-    if not plot.fignum_exists(1):
-        return
+    if not plot.fignum_exists(1): return
     # remove previously drawn points
-    for dot in plot.gca().collections:
-        dot.remove()
+    for dot in plot.gca().collections: dot.remove()
     # draw new points
     gui.scatter3D(
         [p['x'] for p in leds],
         [p['y'] for p in leds],
         [p['z'] for p in leds],
-        c=[(led['r'], led['g'], led['b']) for led in frame['c']]
+        c=[(color['r'], color['g'], color['b']) for color in frame['c']]
     )
     plot.draw()
     plot.pause(frame['t'])
@@ -80,72 +85,66 @@ def main():
         xyz.read()
         state += 1 << 3
     except EnvironmentError:
-        # generate a fake tree if the real one not found
-        xyz.make()
+        xyz.make()  # generate a fake tree if the real one not found
     xtree = XTREE()
-    try:
+    with suppress(EnvironmentError):
         xtree.read()
         state += 1 << 2
-    except EnvironmentError:
-        pass
     csv = CSV()
-    try:
+    with suppress(EnvironmentError):
         csv.read()
         state += 1 << 1
-    except EnvironmentError:
-        pass
     py = PY(coordinates=xyz)
-    try:
-        py.read()
-        state += 1 << 0
-    except EnvironmentError:
-        pass
+    # only compile python if going to preview it
+    match state:
+        case 0 | 2 | 4 | 6 | 8:
+            with suppress(EnvironmentError):
+                py.read()
+                state += 1 << 0
+        case _:
+            pass
     # create other file formats
     # XTREE -> CSV (if CSV not present)
     if state & (1 << 2) and not state & (1 << 1):
         xtree.convert(CSV).write()
+        csv.read()
+        state += 1 << 1
     # CSV -> XTREE (if XTREE not present)
     elif state & (1 << 1) and not state & (1 << 2):
         xtree = csv.convert(XTREE).write()
+        state += 1 << 2
     # PY -> XTREE, CSV (if both not present)
     elif state == 9:
-        py.convert(CSV).write()
         xtree = py.convert(XTREE).write()
+        xtree.convert(CSV).write()
     match state:
+        # the conversions merge states 2 and 4 into 6
         # 0   ()             fake tree, black LEDs
-        # 2   (csv)          ->  0
-        # 4   (xtree)        ->  0
         # 6   (csv, xtree)   ->  0
         # 8   (coordinates)  real tree, black LEDs
-        case 0 | 2 | 4 | 6 | 8:
-            use = py
-            # black LEDs
+        case 0 | 6 | 8:
+            # write a frame of black LEDs
             py.data = [{'t': 1 / 30, 'c': [{'r': 0, 'g': 0, 'b': 0} for _ in xyz.data]}]
+            use = py
         # py file present
+        # the conversions merge states 3 and 5 into 7
         # 1   ()            fake tree, preview PY
-        # 3   (csv)         ->  1
-        # 5   (xtree)       ->  1
         # 7   (csv, xtree)  ->  1
-        case 1 | 3 | 5 | 7:
+        case 1 | 7:
             use = py
         # coordinate file present
-        # 9   (py)              -> 15
-        # 10  (csv)             -> 15
-        # 11  (py, csv)         -> 15
-        # 12  (xtree)           -> 15
-        # 13  (py, xtree)       -> 15
-        # 14  (csv, xtree)      -> 15
+        # the conversions merge states 9, 10, 11, 12, 13 and 14 into 15
         # 15  (py, csv, xtree)  real tree, preview XTREE
         case _:
             use = xtree
     frame = 1
     graph = gui(xyz.data)
     while plot.fignum_exists(1):
-        if not frame < len(use.data):
-            frame = 1
-        draw(graph, xyz.data, use.data[frame-1])
+        if not frame < len(use.data): frame = 1
+        draw(graph, xyz.data, use.data[frame - 1])
         frame += 1
 
 
 if __name__ == '__main__':
+    os.chdir(os.path.dirname(os.path.realpath(__file__)))  # fix running by left click
     main()
