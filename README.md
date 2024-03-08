@@ -1,4 +1,5 @@
 # Christmas Tree Visualizer
+[![ko-fi](https://img.shields.io/badge/show-support-555599?style=for-the-badge&logo=kofi)](https://ko-fi.com/aonodensetsu)  
 A python wrapper for creating and viewing effects for Matt Parker's (or any other) Christmas tree. Displays PY, CSV or XTREE effect files and allows creating effects easily.
 
 To use it you need to do a few simple things:
@@ -30,6 +31,3 @@ The format itself is just a binary representation of the CSV taking account of r
 *This puts a limit on the amount of LEDs a tree can have at just over 16 million, also limits the FPS at 65 thousand (message me if you need more :p)
 
 You can import this tool into your code to convert between compatible formats with negligible overhead.
-
-[![ko-fi](https://img.shields.io/badge/show-support-555599?style=for-the-badge&logo=kofi&link=https%3A%2F%2Fko-fi.com%2Faonodensetsu
-)](https://ko-fi.com/aonodensetsu)
