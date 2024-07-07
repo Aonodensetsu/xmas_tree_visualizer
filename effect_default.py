@@ -8,6 +8,7 @@ def frame_max() -> int:
 
 
 def frame_time(frame: int) -> float:
+    _ = frame
     return 1/30
 
 

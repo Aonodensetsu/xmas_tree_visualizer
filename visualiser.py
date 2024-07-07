@@ -8,25 +8,7 @@ matplotlib.use('TkAgg', force=True)
 import matplotlib.pyplot as plot
 
 
-def gui(leds):
-    # gather screen information
-    screen_measurer = tkinter.Tk()
-    dpi = screen_measurer.winfo_fpixels('1i')
-    screen_height = screen_measurer.winfo_screenheight()
-    # calculate a reasonable window size
-    top = int(0.05 * screen_height)
-    left = 200
-    height = int(0.75 * screen_height)
-    width = int(0.75 * height)
-    screen_measurer.update()
-    screen_measurer.destroy()
-    # set window parameters
-    matplotlib.rcParams['toolbar'] = 'None'
-    matplotlib.rc('grid', color='None')
-    window = plot.figure(num='Christmas Tree Visualiser')
-    window.canvas.manager.window.wm_geometry(f'+{left}+{top}')
-    window.set_size_inches(width / dpi, height / dpi)
-    window.canvas.mpl_connect('close_event', lambda e: plot.close(window))
+def _plot(window, leds):
     # create a plot
     graph = window.add_subplot(111, projection='3d')
     graph.view_init(elev=15, azim=5)
@@ -53,6 +35,29 @@ def gui(leds):
     graph.tick_params(which='both', color='None', labelcolor='white')
     graph.tick_params(axis='both', pad=5)
     graph.tick_params(axis='z', pad=15)
+    return graph
+
+
+def gui(leds):
+    # gather screen information
+    screen_measurer = tkinter.Tk()
+    dpi = screen_measurer.winfo_fpixels('1i')
+    screen_height = screen_measurer.winfo_screenheight()
+    # calculate a reasonable window size
+    top = int(0.05 * screen_height)
+    left = 200
+    height = int(0.75 * screen_height)
+    width = int(0.75 * height)
+    screen_measurer.update()
+    screen_measurer.destroy()
+    # set window parameters
+    matplotlib.rcParams['toolbar'] = 'None'
+    matplotlib.rc('grid', color='None')
+    window = plot.figure(num='Christmas Tree Visualiser')
+    window.canvas.manager.window.wm_geometry(f'+{left}+{top}')
+    window.set_size_inches(width / dpi, height / dpi)
+    window.canvas.mpl_connect('close_event', lambda e: plot.close(window))
+    graph = _plot(window, leds)
     # plot the initial points
     graph.plot([p['x'] for p in leds], [p['y'] for p in leds], [p['z'] for p in leds], color=(0, 0, 0, 0.08))
     graph.set_box_aspect([ub - lb for lb, ub in (getattr(graph, f'get_{a}lim')() for a in 'xyz')])
@@ -101,8 +106,6 @@ def main():
             with suppress(EnvironmentError):
                 py.read()
                 state += 1 << 0
-        case _:
-            pass
     # create other file formats
     # XTREE -> CSV (if CSV not present)
     if state & (1 << 2) and not state & (1 << 1):
@@ -140,7 +143,7 @@ def main():
     frame = 1
     graph = gui(xyz.data)
     while plot.fignum_exists(1):
-        if not frame < len(use.data): frame = 1
+        if frame >= len(use.data): frame = 1
         draw(graph, xyz.data, use.data[frame - 1])
         frame += 1
 

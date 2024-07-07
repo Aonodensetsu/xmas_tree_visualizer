@@ -16,6 +16,7 @@ def frame_time(frame: int) -> float:
     This may not be perfectly accurate in the visualizer
         (and probably won't be on the actual tree either)
     """
+    _ = frame
     return 1/30  # just run at a constant 30FPS by default
 
 
@@ -36,5 +37,6 @@ def run(positions: list[dict], frame: int, storage: Any) -> (list[dict], Any):
            [ {r, g, b}, {'r': 0.2, 'g': 0.7, 'b': 1}, ... ]
            one dictionary per LED - the same length as positions
     """
+    _ = frame
     rgb = [{'r': 0, 'g': 0, 'b': 0} for _ in positions]  # this template is a valid effect, will set all LEDs to black
     return rgb, storage

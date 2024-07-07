@@ -9,6 +9,9 @@ from sys import modules
 from tqdm import tqdm
 from os import chdir
 
+NO_DATA = 'No data to write'
+NO_FILE = 'File does not exist'
+
 
 class Format(ABC):
     # list - one entry per animation frame
@@ -35,17 +38,18 @@ class Format(ABC):
     @abstractmethod
     def read(self) -> Format:
         if not exists(self.filename + self.ext):
-            raise EnvironmentError('File does not exist')
+            raise EnvironmentError(NO_FILE)
+        self.data = []
         with open(self.filename + self.ext, mode='r', encoding='utf-8') as f:
-            self.data = []  # IMPLEMENT read
+            _ = f  # IMPLEMENT read
         return self
 
     @abstractmethod
     def write(self) -> Format:
         if not self.data:
-            raise EnvironmentError('No data to write')
+            raise EnvironmentError(NO_DATA)
         with open(self.filename + self.ext, mode='w', encoding='utf-8') as f:
-            pass  # IMPLEMENT write
+            _ = f  # IMPLEMENT write
         return self
 
 
@@ -75,7 +79,7 @@ class Coordinates:
 
     def write(self) -> Coordinates:
         if not self.data:
-            raise EnvironmentError('No data to write')
+            raise EnvironmentError(NO_DATA)
         with open(self.filename + self.ext, mode='w', encoding='utf-8') as f:
             for line in self.data:
                 f.write(f"{round(line['x'], 12)},{round(line['y'], 12)},{round(line['z'], 12)}\n")
@@ -109,7 +113,7 @@ class PY(Format):
 
     def read(self) -> PY:
         if not exists(self.filename + self.ext):
-            raise EnvironmentError('File does not exist')
+            raise EnvironmentError(NO_FILE)
         self.data = []
         spec = spec_from_file_location('tree_effect', self.filename + self.ext)
         tree_effect = modules['tree_effect'] = module_from_spec(spec)
@@ -131,7 +135,7 @@ class CSV(Format):
 
     def read(self) -> CSV:
         if not exists(self.filename + self.ext):
-            raise EnvironmentError('File does not exist')
+            raise EnvironmentError(NO_FILE)
         self.data = []
         with open(self.filename + self.ext, mode='r', encoding='utf-8') as f:
             creader = reader(f)
@@ -151,7 +155,7 @@ class CSV(Format):
 
     def write(self) -> CSV:
         if not self.data:
-            raise EnvironmentError('No data to write')
+            raise EnvironmentError(NO_DATA)
         with open(self.filename + self.ext, mode='w', encoding='utf-8') as f:
             f.write(
                 f'FRAME_TIME,{",".join(f"{j}_{i}" for j in ["R", "G", "B"] for i in range(len(self.data[0]["c"])))}\n'
@@ -168,7 +172,7 @@ class XTREE(Format):
 
     def read(self) -> XTREE:
         if not exists(self.filename + self.ext):
-            raise EnvironmentError('File does not exist')
+            raise EnvironmentError(NO_FILE)
         self.data = []
         with open(self.filename + self.ext, mode='br+') as f:
             leds = int.from_bytes(f.read(3), 'big', signed=False)
@@ -185,7 +189,7 @@ class XTREE(Format):
 
     def write(self) -> XTREE:
         if not self.data:
-            raise EnvironmentError('No data to write')
+            raise EnvironmentError(NO_DATA)
         with open(self.filename + self.ext, mode='bw+') as f:
             f.write(int(len(self.data[0]['c'])).to_bytes(3, 'big', signed=False))
             for i in self.data:
@@ -210,7 +214,7 @@ def main():
             match input('To type (csv/xtree): '):
                 case 'csv':
                     a = a.convert(CSV, input(f'To file [{CSV.ext}]({CSV.filename})') or CSV.filename)
-                case 'xtree':\
+                case 'xtree':
                     a = a.convert(XTREE, input(f'To file [{XTREE.ext}]({XTREE.filename})') or XTREE.filename)
                 case _:
                     raise NotImplementedError('No such type')
